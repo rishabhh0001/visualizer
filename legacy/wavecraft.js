@@ -241,7 +241,9 @@ function togglePlay() {
 
     if (isPlaying) {
         pauseOffset = audioCtx.currentTime - startTime;
-        sourceNode.stop();
+        if (sourceNode) {
+            try { sourceNode.stop(); } catch (e) { }
+        }
         isPlaying = false;
     } else {
         startPlayback(clamp(pauseOffset, 0, fileDuration));
@@ -836,6 +838,12 @@ function getChannelAvg(an) {
     return d.reduce((s, v) => s + v, 0) / d.length / 255;
 }
 
+function getBandAvg(data, startBin, endBin) {
+    let sum = 0;
+    for (let i = startBin; i <= endBin; i++) sum += data[i] || 0;
+    return (sum / (endBin - startBin + 1)) / 255;
+}
+
 function updateMeters(l, r) {
     const lpct = l * 100, rpct = r * 100;
     meterL.style.height = lpct + '%';
@@ -878,10 +886,11 @@ function drawBars(W, H) {
     const halfH = H / 2;
     ctx2d.save();
     for (let i = 0; i < bins; i++) {
-        const val = freqData[i] / 255;
+        // Apply an exponent to increase dynamic range (lower signals drop faster, highs pop more)
+        const val = Math.pow(freqData[i] / 255, 1.5);
         const barH = val * halfH * 0.92;
-        const bright = 40 + val * 20;
-        const glow = val > 0.6;
+        const bright = 40 + val * 40; // Expand color brightness range
+        const glow = val > 0.4;
         ctx2d.fillStyle = `hsl(141,73%,${bright}%)`;
         if (glow) {
             ctx2d.shadowBlur = 12;
