@@ -202,7 +202,14 @@ function loadAudioFile(file) {
 
 function startPlayback(offset) {
     if (!audioBuffer && !isStream) return;
-    if (sourceNode) { try { sourceNode.stop(); } catch (e) { } }
+
+    // Cleanup any existing source before creating a new one
+    if (sourceNode) {
+        try {
+            sourceNode.stop();
+            sourceNode.disconnect();
+        } catch (e) { }
+    }
 
     if (isStream && streamAudioEl) {
         streamAudioEl.play();
@@ -211,18 +218,25 @@ function startPlayback(offset) {
         return;
     }
 
+    // Must recreate the buffer source each time we play
     sourceNode = audioCtx.createBufferSource();
     sourceNode.buffer = audioBuffer;
     sourceNode.loop = isLooping;
     sourceNode.connect(subFilter); // Connect to first EQ node
     sourceNode.start(0, offset);
+
     startTime = audioCtx.currentTime - offset;
     pauseOffset = offset;
     isPlaying = true;
     updatePlayUI();
+
+    // Handle natural end or loop
     sourceNode.onended = () => {
+        // If it was stopped manually (we set isPlaying=false before stop()), ignore.
+        if (!isPlaying) return;
         if (isLooping) return;
-        isPlaying = false; pauseOffset = 0;
+        isPlaying = false;
+        pauseOffset = 0;
         updatePlayUI();
     };
 }
@@ -241,10 +255,13 @@ function togglePlay() {
 
     if (isPlaying) {
         pauseOffset = audioCtx.currentTime - startTime;
+        isPlaying = false; // Set this BEFORE stopping so onended ignores it
         if (sourceNode) {
-            try { sourceNode.stop(); } catch (e) { }
+            try {
+                sourceNode.stop();
+                sourceNode.disconnect();
+            } catch (e) { }
         }
-        isPlaying = false;
     } else {
         startPlayback(clamp(pauseOffset, 0, fileDuration));
     }
