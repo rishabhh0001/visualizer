@@ -805,8 +805,13 @@ function renderLoop() {
         analyserNode.getByteTimeDomainData(timeData);
     }
 
-    // Clear
-    ctx2d.clearRect(0, 0, W, H);
+    // Clear or Fade (Trails)
+    if (currentMode === 'particles' || currentMode === 'wave' || currentMode === 'scope') {
+        ctx2d.fillStyle = 'rgba(18, 18, 18, 0.25)';
+        ctx2d.fillRect(0, 0, W, H);
+    } else {
+        ctx2d.clearRect(0, 0, W, H);
+    }
 
     if (!audioBuffer && !isStream) { drawIdleAnimation(W, H); updateMeters(0, 0); return; }
 
@@ -929,36 +934,35 @@ function drawWave(W, H) {
 
 // ── RADIAL mode ───────────────────────────────────────────
 function drawRadial(W, H) {
+    const data = new Uint8Array(analyserNode.frequencyBinCount);
+    analyserNode.getByteFrequencyData(data);
     const cx = W / 2, cy = H / 2;
-    const bassAvg = freqData.slice(0, 4).reduce((a, b) => a + b, 0) / 4 / 255;
-    const minR = Math.min(W, H) * 0.12;
-    const maxSpoke = Math.min(W, H) * 0.28;
-    const bins = 128;
+    const bass = getBandAvg(data, 0, 10);
+    const radius = Math.min(W, H) * 0.15 + (bass * 0.4);
+
+    const time = performance.now() * 0.0002;
     ctx2d.save();
-    // Center pulse
-    const pulseR = minR + bassAvg * minR * 0.5;
-    const cGrad = ctx2d.createRadialGradient(cx, cy, 0, cx, cy, pulseR);
-    cGrad.addColorStop(0, `rgba(29,185,84,${0.3 + bassAvg * 0.5})`);
-    cGrad.addColorStop(1, 'rgba(29,185,84,0)');
-    ctx2d.fillStyle = cGrad;
+    ctx2d.translate(cx, cy);
+    ctx2d.rotate(time);
+
     ctx2d.beginPath();
-    ctx2d.arc(cx, cy, pulseR, 0, Math.PI * 2);
-    ctx2d.fill();
-    // Spokes
-    ctx2d.lineWidth = 2.5;
-    ctx2d.shadowBlur = 8; ctx2d.shadowColor = '#1DB954';
-    for (let i = 0; i < bins; i++) {
-        const angle = (i / bins) * Math.PI * 2 - Math.PI / 2;
-        const val = freqData[i] / 255;
-        const len = val * maxSpoke;
-        const hue = 141 + val * 30;
-        ctx2d.strokeStyle = `hsl(${hue},73%,${45 + val * 20}%)`;
-        ctx2d.beginPath();
-        ctx2d.moveTo(cx + Math.cos(angle) * minR, cy + Math.sin(angle) * minR);
-        ctx2d.lineTo(cx + Math.cos(angle) * (minR + len), cy + Math.sin(angle) * (minR + len));
-        ctx2d.stroke();
+    const steps = 128;
+    for (let i = 0; i <= steps; i++) {
+        const v = data[Math.floor(Math.abs((i % steps) - steps / 2) / (steps / 2) * data.length * 0.6)];
+        const r = radius + (v * 0.7);
+        const rad = (i / steps) * Math.PI * 2;
+        const x = Math.cos(rad) * r;
+        const y = Math.sin(rad) * r;
+        if (i === 0) ctx2d.moveTo(x, y);
+        else ctx2d.lineTo(x, y);
     }
-    ctx2d.shadowBlur = 0; ctx2d.restore();
+    ctx2d.closePath();
+    ctx2d.strokeStyle = '#1DB954';
+    ctx2d.lineWidth = 3;
+    ctx2d.shadowBlur = 15;
+    ctx2d.shadowColor = '#1DB954';
+    ctx2d.stroke();
+    ctx2d.restore();
 }
 
 // ── PARTICLES mode ────────────────────────────────────────
@@ -976,6 +980,7 @@ function spawnParticle(W, H) {
         size: 1.5 + Math.random() * 2.5,
         alpha: 0.4 + Math.random() * 0.6,
         decay: 0.004 + Math.random() * 0.006,
+        c: `rgba(29,185,84,${0.4 + Math.random() * 0.6})`
     };
 }
 
@@ -983,24 +988,36 @@ function drawParticles(W, H) {
     if (particles.length === 0) initParticles(W, H);
     const bassEnergy = freqData.slice(0, 16).reduce((a, b) => a + b, 0) / 16 / 255;
     ctx2d.save();
-    for (let i = 0; i < particles.length; i++) {
-        let p = particles[i];
+    particles.forEach((p, i) => {
         const boost = 1 + bassEnergy * 3;
         p.x += p.vx * boost; p.y += p.vy * boost;
         p.alpha -= p.decay;
-        if (p.alpha <= 0) { particles[i] = spawnParticle(W, H); continue; }
-        // Keep in bounds (soft)
-        if (p.x < 0 || p.x > W || p.y < 0 || p.y > H) {
-            particles[i] = spawnParticle(W, H); continue;
+        if (p.alpha <= 0 || p.x < 0 || p.x > W || p.y < 0 || p.y > H) {
+            particles[i] = spawnParticle(W, H);
+            return;
         }
         ctx2d.beginPath();
-        const grd = ctx2d.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3);
-        grd.addColorStop(0, `rgba(29,185,84,${p.alpha})`);
-        grd.addColorStop(0.5, `rgba(29,185,84,${p.alpha * 0.3})`);
-        grd.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx2d.fillStyle = grd;
-        ctx2d.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
+        ctx2d.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx2d.fillStyle = p.c;
         ctx2d.fill();
+    });
+
+    // Plexus connections
+    ctx2d.lineWidth = 1;
+    for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < 15000) {
+                const alpha = (1 - Math.sqrt(distSq) / 122) * 0.4;
+                ctx2d.strokeStyle = `rgba(29, 185, 84, ${alpha})`;
+                ctx2d.beginPath();
+                ctx2d.moveTo(particles[i].x, particles[i].y);
+                ctx2d.lineTo(particles[j].x, particles[j].y);
+                ctx2d.stroke();
+            }
+        }
     }
     ctx2d.restore();
 }

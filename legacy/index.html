@@ -1044,8 +1044,15 @@
             pointer-events: none;
         }
 
-        #footer-credits span {
+        #footer-credits a {
             color: var(--text-secondary);
+            text-decoration: underline;
+            pointer-events: auto;
+            transition: color 0.2s;
+        }
+
+        #footer-credits a:hover {
+            color: var(--accent);
         }
 
         /* ===== ANIMATIONS ===== */
@@ -1397,7 +1404,8 @@
                 </div>
             </div>
         </section>
-        <div id="footer-credits">Created by <span>Rishabh</span></div>
+        <div id="footer-credits">Created by <a href="https://rishabhj.in" target="_blank" rel="noopener">Rishabh</a>
+        </div>
     </div>
 
     <script src="wavecraft.js"></script>
