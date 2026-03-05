@@ -25,7 +25,13 @@ const PRESETS = {
     FLAT: { sub: 0, bass: 0, mid: 0, pres: 0, treble: 0, reverb: 0, delay: 0, feedback: 0, width: 1, pan: 0, gain: 80 },
     BASS_BOOST: { sub: 10, bass: 8, mid: -2, pres: 2, treble: 0, reverb: 0.1, delay: 0, feedback: 0, width: 1.2, pan: 0, gain: 80 },
     CLARITY: { sub: -4, bass: -2, mid: 3, pres: 6, treble: 5, reverb: 0, delay: 0, feedback: 0, width: 1, pan: 0, gain: 80 },
-    CONCERT: { sub: 4, bass: 2, mid: 0, pres: 4, treble: 2, reverb: 0.6, delay: 150, feedback: 40, width: 1.5, pan: 0, gain: 80 }
+    CONCERT: { sub: 4, bass: 2, mid: 0, pres: 4, treble: 2, reverb: 0.6, delay: 150, feedback: 40, width: 1.5, pan: 0, gain: 80 },
+    ROCK: { sub: 5, bass: 6, mid: -2, pres: 5, treble: 7, reverb: 0.2, delay: 0, feedback: 0, width: 1.3, pan: 0, gain: 85 },
+    POP: { sub: 2, bass: 4, mid: 2, pres: 5, treble: 4, reverb: 0.1, delay: 0, feedback: 0, width: 1.2, pan: 0, gain: 80 },
+    JAZZ: { sub: 2, bass: 3, mid: -1, pres: 2, treble: 3, reverb: 0.35, delay: 80, feedback: 25, width: 1.1, pan: 0, gain: 78 },
+    LOFI: { sub: 6, bass: 5, mid: -3, pres: -4, treble: -6, reverb: 0.4, delay: 200, feedback: 30, width: 0.8, pan: 0, gain: 75 },
+    VOCAL: { sub: -5, bass: -3, mid: 5, pres: 7, treble: 3, reverb: 0.15, delay: 0, feedback: 0, width: 1, pan: 0, gain: 80 },
+    CLUB: { sub: 8, bass: 9, mid: 0, pres: 3, treble: 3, reverb: 0.5, delay: 0, feedback: 0, width: 1.6, pan: 0, gain: 90 },
 };
 
 // ── DOM refs ──────────────────────────────────────────────
@@ -314,8 +320,15 @@ seekBarWrap.addEventListener('click', e => {
 
     const newTime = clamp(pct * fileDuration, 0, fileDuration);
     pauseOffset = newTime;
-    if (isPlaying) startPlayback(newTime);
-    else timeCurrent.textContent = fmtTime(newTime);
+    timeCurrent.textContent = fmtTime(newTime);
+    seekFill.style.width = (pct * 100) + '%';
+    // Whether playing or paused, restart from new position
+    if (isPlaying) {
+        startPlayback(newTime);
+    } else {
+        // Even when paused, update the visual position
+        timeCurrent.textContent = fmtTime(newTime);
+    }
 });
 
 // ── Volume ────────────────────────────────────────────────
@@ -896,29 +909,47 @@ function drawIdleAnimation(W, H) {
     }
 }
 
-// ── BARS mode ─────────────────────────────────────────────
+// ── BARS mode (rewritten) ────────────────────────────────────
+const peakBars = new Float32Array(128); // Peak hold values per bar
 function drawBars(W, H) {
     const bins = 128;
-    const barW = (W / bins) - 1;
+    const gap = 2;
+    const barW = Math.floor((W - gap * (bins - 1)) / bins);
     const halfH = H / 2;
     ctx2d.save();
+    ctx2d.clearRect(0, 0, W, H);
     for (let i = 0; i < bins; i++) {
-        // Apply an exponent to increase dynamic range (lower signals drop faster, highs pop more)
-        const val = Math.pow(freqData[i] / 255, 1.5);
-        const barH = val * halfH * 0.92;
-        const bright = 40 + val * 40; // Expand color brightness range
-        const glow = val > 0.4;
-        ctx2d.fillStyle = `hsl(141,73%,${bright}%)`;
-        if (glow) {
-            ctx2d.shadowBlur = 12;
-            ctx2d.shadowColor = '#1DB954';
+        // Raise to a power to increase dynamic range
+        const raw = freqData[i] / 255;
+        const val = Math.pow(raw, 1.8);
+        const barH = Math.max(2, val * halfH * 0.95);
+        const x = i * (barW + gap);
+
+        // Peak hold logic
+        if (val * halfH * 0.95 > peakBars[i]) {
+            peakBars[i] = val * halfH * 0.95;
         } else {
-            ctx2d.shadowBlur = 0;
+            peakBars[i] = Math.max(0, peakBars[i] - 1.5);
         }
-        const x = i * (barW + 1);
-        // Mirror top + bottom
-        ctx2d.fillRect(x, halfH - barH, barW, barH);
+
+        // Gradient per bar from bottom
+        const grad = ctx2d.createLinearGradient(0, halfH + barH, 0, halfH);
+        grad.addColorStop(0, `hsl(141, 80%, 35%)`);
+        grad.addColorStop(0.6, `hsl(141, 75%, 50%)`);
+        grad.addColorStop(1, val > 0.7 ? '#fff' : '#a3f0c1');
+        ctx2d.fillStyle = grad;
+
+        // Bottom bars
         ctx2d.fillRect(x, halfH, barW, barH);
+        // Top mirror
+        ctx2d.fillRect(x, halfH - barH, barW, barH);
+
+        // Peak indicator line
+        if (peakBars[i] > 2) {
+            ctx2d.fillStyle = val > 0.8 ? '#ff4444' : '#22ff88';
+            ctx2d.fillRect(x, halfH - peakBars[i] - 2, barW, 2);
+            ctx2d.fillRect(x, halfH + peakBars[i], barW, 2);
+        }
     }
     ctx2d.shadowBlur = 0;
     ctx2d.restore();
@@ -958,36 +989,57 @@ function drawWave(W, H) {
     ctx2d.shadowBlur = 0;
 }
 
-// ── RADIAL mode ───────────────────────────────────────────
+// ── RADIAL mode (full centered circle) ────────────────────────
+// We use the global freqData (already filled), not a new buffer
 function drawRadial(W, H) {
-    const data = new Uint8Array(analyserNode.frequencyBinCount);
-    analyserNode.getByteFrequencyData(data);
     const cx = W / 2, cy = H / 2;
-    const bass = getBandAvg(data, 0, 10);
-    const radius = Math.min(W, H) * 0.15 + (bass * 0.4);
-
+    const minDim = Math.min(W, H);
+    const baseRadius = minDim * 0.22;
+    const bins = 256; // number of radial spokes
     const time = performance.now() * 0.0002;
-    ctx2d.save();
-    ctx2d.translate(cx, cy);
-    ctx2d.rotate(time);
 
+    ctx2d.save();
+    ctx2d.clearRect(0, 0, W, H);
+    ctx2d.translate(cx, cy);
+    ctx2d.rotate(time); // gentle auto-rotation
+
+    // Draw inner filled circle
     ctx2d.beginPath();
-    const steps = 128;
-    for (let i = 0; i <= steps; i++) {
-        const v = data[Math.floor(Math.abs((i % steps) - steps / 2) / (steps / 2) * data.length * 0.6)];
-        const r = radius + (v * 0.7);
-        const rad = (i / steps) * Math.PI * 2;
-        const x = Math.cos(rad) * r;
-        const y = Math.sin(rad) * r;
-        if (i === 0) ctx2d.moveTo(x, y);
-        else ctx2d.lineTo(x, y);
+    ctx2d.arc(0, 0, baseRadius * 0.6, 0, Math.PI * 2);
+    ctx2d.fillStyle = 'rgba(29,185,84,0.06)';
+    ctx2d.fill();
+
+    // Draw frequency spokes around the circle
+    for (let i = 0; i < bins; i++) {
+        const angle = (i / bins) * Math.PI * 2;
+        const freqIndex = Math.floor((i / bins) * freqData.length * 0.75);
+        const val = Math.pow(freqData[freqIndex] / 255, 1.2);
+        const len = val * minDim * 0.35;
+        const r1 = baseRadius;
+        const r2 = baseRadius + len;
+        const cos = Math.cos(angle), sin = Math.sin(angle);
+
+        const hue = 141 + val * 60; // green -> cyan at high energy
+        const alpha = 0.4 + val * 0.6;
+        ctx2d.beginPath();
+        ctx2d.moveTo(cos * r1, sin * r1);
+        ctx2d.lineTo(cos * r2, sin * r2);
+        ctx2d.strokeStyle = `hsla(${hue}, 85%, 55%, ${alpha})`;
+        ctx2d.lineWidth = Math.max(1, val * 3);
+        ctx2d.shadowBlur = val > 0.5 ? 8 : 0;
+        ctx2d.shadowColor = '#1DB954';
+        ctx2d.stroke();
     }
-    ctx2d.closePath();
-    ctx2d.strokeStyle = '#1DB954';
-    ctx2d.lineWidth = 3;
-    ctx2d.shadowBlur = 15;
+
+    // Outer glow ring
+    ctx2d.beginPath();
+    ctx2d.arc(0, 0, baseRadius, 0, Math.PI * 2);
+    ctx2d.strokeStyle = 'rgba(29,185,84,0.4)';
+    ctx2d.lineWidth = 1.5;
+    ctx2d.shadowBlur = 10;
     ctx2d.shadowColor = '#1DB954';
     ctx2d.stroke();
+
     ctx2d.restore();
 }
 
@@ -1048,7 +1100,7 @@ function drawParticles(W, H) {
     ctx2d.restore();
 }
 
-// ── SCOPE (Lissajous) mode ────────────────────────────────
+// ── SCOPE (Lissajous) mode (rewritten for brightness) ────────────────────────
 function drawScope(W, H) {
     if (!analyserL || !analyserR) return;
     const bufL = new Float32Array(analyserL.fftSize);
@@ -1056,20 +1108,54 @@ function drawScope(W, H) {
     analyserL.getFloatTimeDomainData(bufL);
     analyserR.getFloatTimeDomainData(bufR);
     const cx = W / 2, cy = H / 2;
-    const scale = Math.min(W, H) * 0.42;
-    ctx2d.save();
-    ctx2d.strokeStyle = 'rgba(29,185,84,0.7)';
-    ctx2d.lineWidth = 1.5;
-    ctx2d.shadowBlur = 6; ctx2d.shadowColor = '#1DB954';
-    ctx2d.beginPath();
+    // Use most of the canvas area
+    const scale = Math.min(W, H) * 0.48;
     const len = Math.min(bufL.length, bufR.length);
+
+    ctx2d.save();
+    ctx2d.clearRect(0, 0, W, H);
+
+    // Draw a thin grid for reference
+    ctx2d.strokeStyle = 'rgba(29,185,84,0.08)';
+    ctx2d.lineWidth = 1;
+    ctx2d.beginPath();
+    ctx2d.moveTo(cx, 0); ctx2d.lineTo(cx, H);
+    ctx2d.moveTo(0, cy); ctx2d.lineTo(W, cy);
+    ctx2d.stroke();
+
+    // Outer reference circle
+    ctx2d.beginPath();
+    ctx2d.arc(cx, cy, scale, 0, Math.PI * 2);
+    ctx2d.strokeStyle = 'rgba(29,185,84,0.05)';
+    ctx2d.stroke();
+
+    // Draw the Lissajous figure with glow
+    ctx2d.shadowBlur = 14;
+    ctx2d.shadowColor = '#1DB954';
+    ctx2d.strokeStyle = 'rgba(29,185,84,0.9)';
+    ctx2d.lineWidth = 1.5;
+    ctx2d.beginPath();
     for (let i = 0; i < len; i++) {
         const x = cx + bufL[i] * scale;
         const y = cy + bufR[i] * scale;
         i === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
     }
     ctx2d.stroke();
-    ctx2d.shadowBlur = 0; ctx2d.restore();
+
+    // Second pass with a brighter inner glow
+    ctx2d.shadowBlur = 6;
+    ctx2d.strokeStyle = 'rgba(180,255,200,0.5)';
+    ctx2d.lineWidth = 0.5;
+    ctx2d.beginPath();
+    for (let i = 0; i < len; i++) {
+        const x = cx + bufL[i] * scale;
+        const y = cy + bufR[i] * scale;
+        i === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
+    }
+    ctx2d.stroke();
+
+    ctx2d.shadowBlur = 0;
+    ctx2d.restore();
 }
 
 // ── Init ──────────────────────────────────────────────────
