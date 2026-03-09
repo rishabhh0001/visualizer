@@ -1502,7 +1502,7 @@ const presetSelect = document.getElementById('preset-select');
 const ctrlRefs = {};
 
 // ── Utility ───────────────────────────────────────────────
-const fmtTime = s => { const m = Math.floor(s / 60); return \`\${m}:\${String(Math.floor(s % 60)).padStart(2, '0')}\`; };
+function fmtTime(s) { const m = Math.floor(s / 60); return \`\${m}:\${String(Math.floor(s % 60)).padStart(2, '0')}\`; }
 const clamp = (v, mn, mx) => Math.min(mx, Math.max(mn, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -1619,7 +1619,7 @@ function loadAudioFile(file) {
         audioCtx.decodeAudioData(e.target.result, buf => {
             audioBuffer = buf;
             fileDuration = buf.duration;
-            const name = file.name.replace(/\.[^.]+$/, '');
+            const name = file.name.replace(/\\.[^.]+$/, ''); 
             headerTitle.textContent = name;
             headerArtist.textContent = \`\${fmtTime(fileDuration)} · \${(file.size / 1048576).toFixed(1)} MB\`;
             seekTrackName.textContent = name;
@@ -1828,8 +1828,14 @@ document.querySelectorAll('.mode-tab').forEach(btn => {
 });
 
 // ── File Upload & Stream ──────────────────────────────────
-browseLink.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', e => { if (e.target.files[0]) loadAudioFile(e.target.files[0]); });
+browseLink.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+dropArea.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => { 
+    if (e.target.files[0]) {
+        loadAudioFile(e.target.files[0]); 
+        fileInput.value = '';
+    } 
+});
 
 // Global Drag & Drop handling for better UX
 window.addEventListener('dragover', e => e.preventDefault());
@@ -1887,7 +1893,8 @@ streamBtn.addEventListener('click', () => {
         isStream = true;
         audioBuffer = null;
         headerTitle.textContent = 'Audio Stream';
-        headerArtist.textContent = url.replace(/^https?:\/\//, '').split('/')[0];
+        const domainMatch = url.match(/^https?:\\/\\/([^\\/]+)/);
+        headerArtist.textContent = domainMatch ? domainMatch[1] : 'Remote Stream';
         seekTrackName.textContent = 'Remote Stream';
         const W = document.getElementById('waveform-canvas').width;
         const H = document.getElementById('waveform-canvas').height;
@@ -1940,65 +1947,65 @@ function createKnob(container, label, min, max, def, unit, size, onChange) {
     svg.setAttribute('viewBox', \`0 0 \${size} \${size}\`);
 
     const cx = size / 2, cy = size / 2, r = size / 2 - 5, sw = 3;
-    const startA = 135 * Math.PI / 180, endA = 405 * Math.PI / 180;
+const startA = 135 * Math.PI / 180, endA = 405 * Math.PI / 180;
 
-    // BG arc
-    const arcBg = document.createElementNS(ns, 'path');
-    arcBg.setAttribute('fill', 'none');
-    arcBg.setAttribute('stroke', '#333');
-    arcBg.setAttribute('stroke-width', sw);
-    arcBg.setAttribute('stroke-linecap', 'round');
-    arcBg.setAttribute('d', describeArc(cx, cy, r, 135, 405));
+// BG arc
+const arcBg = document.createElementNS(ns, 'path');
+arcBg.setAttribute('fill', 'none');
+arcBg.setAttribute('stroke', '#333');
+arcBg.setAttribute('stroke-width', sw);
+arcBg.setAttribute('stroke-linecap', 'round');
+arcBg.setAttribute('d', describeArc(cx, cy, r, 135, 405));
 
-    // Fill arc
-    const arcFill = document.createElementNS(ns, 'path');
-    arcFill.setAttribute('fill', 'none');
-    arcFill.setAttribute('stroke', '#1DB954');
-    arcFill.setAttribute('stroke-width', sw);
-    arcFill.setAttribute('stroke-linecap', 'round');
+// Fill arc
+const arcFill = document.createElementNS(ns, 'path');
+arcFill.setAttribute('fill', 'none');
+arcFill.setAttribute('stroke', '#1DB954');
+arcFill.setAttribute('stroke-width', sw);
+arcFill.setAttribute('stroke-linecap', 'round');
 
-    svg.appendChild(arcBg); svg.appendChild(arcFill);
-    knobEl.appendChild(svg);
+svg.appendChild(arcBg); svg.appendChild(arcFill);
+knobEl.appendChild(svg);
 
-    const dot = document.createElement('div');
-    dot.className = 'knob-center';
-    knobEl.appendChild(dot);
+const dot = document.createElement('div');
+dot.className = 'knob-center';
+knobEl.appendChild(dot);
 
-    const lbl = document.createElement('div');
-    lbl.className = 'knob-label';
-    lbl.textContent = label;
+const lbl = document.createElement('div');
+lbl.className = 'knob-label';
+lbl.textContent = label;
 
-    const valEl = document.createElement('div');
-    valEl.className = 'knob-val';
+const valEl = document.createElement('div');
+valEl.className = 'knob-val';
 
-    let value = def;
-    const setVal = v => {
-        value = clamp(v, min, max);
-        const norm = (value - min) / (max - min);
-        const angle = 135 + norm * 270;
-        arcFill.setAttribute('d', describeArc(cx, cy, r, 135, angle));
-        valEl.textContent = formatKnobVal(value, unit);
-        onChange && onChange(value);
-    };
-    setVal(def);
+let value = def;
+const setVal = v => {
+    value = clamp(v, min, max);
+    const norm = (value - min) / (max - min);
+    const angle = 135 + norm * 270;
+    arcFill.setAttribute('d', describeArc(cx, cy, r, 135, angle));
+    valEl.textContent = formatKnobVal(value, unit);
+    onChange && onChange(value);
+};
+setVal(def);
 
-    let dragging = false, startY = 0, startVal = def;
-    knobEl.addEventListener('pointerdown', e => {
-        dragging = true; startY = e.clientY; startVal = value;
-        knobEl.setPointerCapture(e.pointerId);
-        e.preventDefault();
-    });
-    knobEl.addEventListener('pointermove', e => {
-        if (!dragging) return;
-        const delta = (startY - e.clientY) * (max - min) / 150;
-        setVal(startVal + delta);
-    });
-    knobEl.addEventListener('pointerup', () => { dragging = false; });
-    knobEl.addEventListener('wheel', e => { e.preventDefault(); setVal(value + (e.deltaY < 0 ? 1 : -1) * (max - min) / 50); }, { passive: false });
+let dragging = false, startY = 0, startVal = def;
+knobEl.addEventListener('pointerdown', e => {
+    dragging = true; startY = e.clientY; startVal = value;
+    knobEl.setPointerCapture(e.pointerId);
+    e.preventDefault();
+});
+knobEl.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const delta = (startY - e.clientY) * (max - min) / 150;
+    setVal(startVal + delta);
+});
+knobEl.addEventListener('pointerup', () => { dragging = false; });
+knobEl.addEventListener('wheel', e => { e.preventDefault(); setVal(value + (e.deltaY < 0 ? 1 : -1) * (max - min) / 50); }, { passive: false });
 
-    wrap.appendChild(knobEl); wrap.appendChild(lbl); wrap.appendChild(valEl);
-    container.appendChild(wrap);
-    return { getVal: () => value, setVal };
+wrap.appendChild(knobEl); wrap.appendChild(lbl); wrap.appendChild(valEl);
+container.appendChild(wrap);
+return { getVal: () => value, setVal };
 }
 
 function formatKnobVal(v, unit) {
@@ -2016,373 +2023,373 @@ function describeArc(cx, cy, r, startDeg, endDeg) {
     return \`M\${start.x} \${start.y} A\${r} \${r} 0 \${large} 1 \${end.x} \${end.y}\`;
 }
 
-function polarToCart(cx, cy, r, deg) {
-    const rad = (deg - 90) * Math.PI / 180;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-}
+                        function polarToCart(cx, cy, r, deg) {
+                            const rad = (deg - 90) * Math.PI / 180;
+                            return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+                        }
 
-// ── Horizontal Slider ─────────────────────────────────────
-function createHSlider(container, label, min, max, def, unit, onChange) {
-    const wrap = document.createElement('div');
-    wrap.className = 'h-slider-wrap';
+                        // ── Horizontal Slider ─────────────────────────────────────
+                        function createHSlider(container, label, min, max, def, unit, onChange) {
+                            const wrap = document.createElement('div');
+                            wrap.className = 'h-slider-wrap';
 
-    const head = document.createElement('div');
-    head.className = 'h-slider-head';
-    const lbl = document.createElement('span'); lbl.className = 'h-slider-label'; lbl.textContent = label;
-    const valEl = document.createElement('span'); valEl.className = 'h-slider-val';
-    head.appendChild(lbl); head.appendChild(valEl);
+                            const head = document.createElement('div');
+                            head.className = 'h-slider-head';
+                            const lbl = document.createElement('span'); lbl.className = 'h-slider-label'; lbl.textContent = label;
+                            const valEl = document.createElement('span'); valEl.className = 'h-slider-val';
+                            head.appendChild(lbl); head.appendChild(valEl);
 
-    const inp = document.createElement('input');
-    inp.type = 'range'; inp.className = 'h-slider';
-    inp.min = min; inp.max = max; inp.step = (max - min) / 200; inp.value = def;
+                            const inp = document.createElement('input');
+                            inp.type = 'range'; inp.className = 'h-slider';
+                            inp.min = min; inp.max = max; inp.step = (max - min) / 200; inp.value = def;
 
-    const update = () => {
-        setSliderFill(inp);
-        valEl.textContent = formatKnobVal(+inp.value, unit);
-        onChange && onChange(+inp.value);
-    };
-    update();
-    inp.addEventListener('input', update);
+                            const update = () => {
+                                setSliderFill(inp);
+                                valEl.textContent = formatKnobVal(+inp.value, unit);
+                                onChange && onChange(+inp.value);
+                            };
+                            update();
+                            inp.addEventListener('input', update);
 
-    wrap.appendChild(head); wrap.appendChild(inp);
-    container.appendChild(wrap);
-    return { getVal: () => +inp.value, setVal: v => { inp.value = v; update(); } };
-}
+                            wrap.appendChild(head); wrap.appendChild(inp);
+                            container.appendChild(wrap);
+                            return { getVal: () => +inp.value, setVal: v => { inp.value = v; update(); } };
+                        }
 
-// ── Vertical EQ Slider ────────────────────────────────────
-function createVSlider(container, label, min, max, def, unit, onChange) {
-    const wrap = document.createElement('div');
-    wrap.className = 'v-slider-wrap';
+                        // ── Vertical EQ Slider ────────────────────────────────────
+                        function createVSlider(container, label, min, max, def, unit, onChange) {
+                            const wrap = document.createElement('div');
+                            wrap.className = 'v-slider-wrap';
 
-    const lbl = document.createElement('div'); lbl.className = 'v-slider-label'; lbl.textContent = label;
+                            const lbl = document.createElement('div'); lbl.className = 'v-slider-label'; lbl.textContent = label;
 
-    // Custom track wrapper
-    const trackWrap = document.createElement('div');
-    trackWrap.style.cssText = 'position:relative;width:20px;height:100px;display:flex;align-items:center;justify-content:center;margin:4px 0;';
+                            // Custom track wrapper
+                            const trackWrap = document.createElement('div');
+                            trackWrap.style.cssText = 'position:relative;width:20px;height:100px;display:flex;align-items:center;justify-content:center;margin:4px 0;';
 
-    const trackBg = document.createElement('div');
-    trackBg.style.cssText = 'position:absolute;width:4px;height:100%;background:#2A2A2A;border-radius:2px;';
+                            const trackBg = document.createElement('div');
+                            trackBg.style.cssText = 'position:absolute;width:4px;height:100%;background:#2A2A2A;border-radius:2px;';
 
-    const trackFill = document.createElement('div');
-    trackFill.style.cssText = 'position:absolute;width:4px;bottom:0;background:#1DB954;border-radius:2px;transition:height 0.05s linear;';
+                            const trackFill = document.createElement('div');
+                            trackFill.style.cssText = 'position:absolute;width:4px;bottom:0;background:#1DB954;border-radius:2px;transition:height 0.05s linear;';
 
-    const inp = document.createElement('input');
-    inp.type = 'range'; inp.className = 'v-slider';
-    inp.min = min; inp.max = max; inp.step = 1; inp.value = def;
-    inp.style.cssText = 'position:absolute;width:100%;height:100%;opacity:0;cursor:pointer;writing-mode:vertical-lr;direction:rtl;';
+                            const inp = document.createElement('input');
+                            inp.type = 'range'; inp.className = 'v-slider';
+                            inp.min = min; inp.max = max; inp.step = 1; inp.value = def;
+                            inp.style.cssText = 'position:absolute;width:100%;height:100%;opacity:0;cursor:pointer;writing-mode:vertical-lr;direction:rtl;';
 
-    const thumb = document.createElement('div');
-    thumb.style.cssText = 'position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.6);pointer-events:none;transition:transform 0.1s;';
+                            const thumb = document.createElement('div');
+                            thumb.style.cssText = 'position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.6);pointer-events:none;transition:transform 0.1s;';
 
-    trackWrap.appendChild(trackBg);
-    trackWrap.appendChild(trackFill);
-    trackWrap.appendChild(inp);
-    trackWrap.appendChild(thumb);
+                            trackWrap.appendChild(trackBg);
+                            trackWrap.appendChild(trackFill);
+                            trackWrap.appendChild(inp);
+                            trackWrap.appendChild(thumb);
 
-    const valEl = document.createElement('div'); valEl.className = 'v-slider-val';
+                            const valEl = document.createElement('div'); valEl.className = 'v-slider-val';
 
-    const formatV = v => (v >= 0 ? '+' : '') + v + unit;
-    const update = () => {
-        const pct = (+inp.value - min) / (max - min);
-        trackFill.style.height = (pct * 100) + '%';
-        thumb.style.bottom = 'calc(' + (pct * 100) + '% - 7px)';
-        valEl.textContent = formatV(+inp.value);
-        onChange && onChange(+inp.value);
-    };
-    update();
-    inp.addEventListener('input', update);
-    trackWrap.addEventListener('mouseenter', () => thumb.style.transform = 'scale(1.3)');
-    trackWrap.addEventListener('mouseleave', () => thumb.style.transform = 'scale(1)');
+                            const formatV = v => (v >= 0 ? '+' : '') + v + unit;
+                            const update = () => {
+                                const pct = (+inp.value - min) / (max - min);
+                                trackFill.style.height = (pct * 100) + '%';
+                                thumb.style.bottom = 'calc(' + (pct * 100) + '% - 7px)';
+                                valEl.textContent = formatV(+inp.value);
+                                onChange && onChange(+inp.value);
+                            };
+                            update();
+                            inp.addEventListener('input', update);
+                            trackWrap.addEventListener('mouseenter', () => thumb.style.transform = 'scale(1.3)');
+                            trackWrap.addEventListener('mouseleave', () => thumb.style.transform = 'scale(1)');
 
-    wrap.appendChild(lbl); wrap.appendChild(trackWrap); wrap.appendChild(valEl);
-    container.appendChild(wrap);
-    return {
-        getVal: () => +inp.value,
-        setVal: v => { inp.value = v; update(); }
-    };
-}
+                            wrap.appendChild(lbl); wrap.appendChild(trackWrap); wrap.appendChild(valEl);
+                            container.appendChild(wrap);
+                            return {
+                                getVal: () => +inp.value,
+                                setVal: v => { inp.value = v; update(); }
+                            };
+                        }
 
-// ── Build Control Panels ──────────────────────────────────
-function buildControls() {
-    // EQ sliders
-    const eqBody = document.getElementById('eq-body');
-    ctrlRefs.subSlider = createVSlider(eqBody, 'Sub', -12, 12, 0, 'dB', v => subFilter && (subFilter.gain.value = v));
-    ctrlRefs.bassSlider = createVSlider(eqBody, 'Bass', -12, 12, 0, 'dB', v => bassFilter && (bassFilter.gain.value = v));
-    ctrlRefs.midSlider = createVSlider(eqBody, 'Mid', -12, 12, 0, 'dB', v => midFilter && (midFilter.gain.value = v));
-    ctrlRefs.presSlider = createVSlider(eqBody, 'Pres', -12, 12, 0, 'dB', v => presFilter && (presFilter.gain.value = v));
-    ctrlRefs.trebleSlider = createVSlider(eqBody, 'Treble', -12, 12, 0, 'dB', v => trebleFilter && (trebleFilter.gain.value = v));
+                        // ── Build Control Panels ──────────────────────────────────
+                        function buildControls() {
+                            // EQ sliders
+                            const eqBody = document.getElementById('eq-body');
+                            ctrlRefs.subSlider = createVSlider(eqBody, 'Sub', -12, 12, 0, 'dB', v => subFilter && (subFilter.gain.value = v));
+                            ctrlRefs.bassSlider = createVSlider(eqBody, 'Bass', -12, 12, 0, 'dB', v => bassFilter && (bassFilter.gain.value = v));
+                            ctrlRefs.midSlider = createVSlider(eqBody, 'Mid', -12, 12, 0, 'dB', v => midFilter && (midFilter.gain.value = v));
+                            ctrlRefs.presSlider = createVSlider(eqBody, 'Pres', -12, 12, 0, 'dB', v => presFilter && (presFilter.gain.value = v));
+                            ctrlRefs.trebleSlider = createVSlider(eqBody, 'Treble', -12, 12, 0, 'dB', v => trebleFilter && (trebleFilter.gain.value = v));
 
-    // Spatial width knob
-    ctrlRefs.widthKnob = createKnob(document.getElementById('width-knob-container'), 'WIDTH', 0, 200, 100, '%', 48, v => applyWidth(v / 100));
+                            // Spatial width knob
+                            ctrlRefs.widthKnob = createKnob(document.getElementById('width-knob-container'), 'WIDTH', 0, 200, 100, '%', 48, v => applyWidth(v / 100));
 
-    // 3D + Surround toggles
-    document.getElementById('chk-3d').addEventListener('change', e => {
-        is3D = e.target.checked;
-        if (is3D) animateOrbit();
-    });
-    document.getElementById('chk-surround').addEventListener('change', e => { isSurround = e.target.checked; });
+                            // 3D + Surround toggles
+                            document.getElementById('chk-3d').addEventListener('change', e => {
+                                is3D = e.target.checked;
+                                if (is3D) animateOrbit();
+                            });
+                            document.getElementById('chk-surround').addEventListener('change', e => { isSurround = e.target.checked; });
 
-    // Compressor
-    ctrlRefs.compThresh = createHSlider(document.getElementById('comp-threshold-wrap'), 'Threshold', -60, 0, -24, 'dB', v => compressor && (compressor.threshold.value = v));
-    ctrlRefs.compRatio = createHSlider(document.getElementById('comp-ratio-wrap'), 'Ratio', 1, 20, 4, '', v => compressor && (compressor.ratio.value = v));
-    ctrlRefs.compAttack = createKnob(document.getElementById('comp-attack-knob'), 'ATK', 1, 200, 3, 'ms', 40, v => compressor && (compressor.attack.value = v / 1000));
-    ctrlRefs.compRelease = createKnob(document.getElementById('comp-release-knob'), 'REL', 10, 1000, 250, 'ms', 40, v => compressor && (compressor.release.value = v / 1000));
+                            // Compressor
+                            ctrlRefs.compThresh = createHSlider(document.getElementById('comp-threshold-wrap'), 'Threshold', -60, 0, -24, 'dB', v => compressor && (compressor.threshold.value = v));
+                            ctrlRefs.compRatio = createHSlider(document.getElementById('comp-ratio-wrap'), 'Ratio', 1, 20, 4, '', v => compressor && (compressor.ratio.value = v));
+                            ctrlRefs.compAttack = createKnob(document.getElementById('comp-attack-knob'), 'ATK', 1, 200, 3, 'ms', 40, v => compressor && (compressor.attack.value = v / 1000));
+                            ctrlRefs.compRelease = createKnob(document.getElementById('comp-release-knob'), 'REL', 10, 1000, 250, 'ms', 40, v => compressor && (compressor.release.value = v / 1000));
 
-    // Reverb
-    ctrlRefs.reverbKnob = createKnob(document.getElementById('reverb-knob-container'), 'ROOM', 0.1, 4, 1.5, 's', 48, v => makeImpulseResponse(v));
-    ctrlRefs.reverbDry = createHSlider(document.getElementById('reverb-dry-wrap'), 'Wet', 0, 100, 0, '%', v => {
-        if (reverbGain) reverbGain.gain.value = v / 100;
-        if (dryGain) dryGain.gain.value = 1 - (v / 100) * 0.6;
-    });
-    ctrlRefs.delayTime = createHSlider(document.getElementById('delay-time-wrap'), 'Delay', 0, 1000, 0, 'ms', v => delayNode && (delayNode.delayTime.value = v / 1000));
-    ctrlRefs.delayFb = createHSlider(document.getElementById('delay-fb-wrap'), 'Feedback', 0, 90, 0, '%', v => delayFeedback && (delayFeedback.gain.value = v / 100));
+                            // Reverb
+                            ctrlRefs.reverbKnob = createKnob(document.getElementById('reverb-knob-container'), 'ROOM', 0.1, 4, 1.5, 's', 48, v => makeImpulseResponse(v));
+                            ctrlRefs.reverbDry = createHSlider(document.getElementById('reverb-dry-wrap'), 'Wet', 0, 100, 0, '%', v => {
+                                if (reverbGain) reverbGain.gain.value = v / 100;
+                                if (dryGain) dryGain.gain.value = 1 - (v / 100) * 0.6;
+                            });
+                            ctrlRefs.delayTime = createHSlider(document.getElementById('delay-time-wrap'), 'Delay', 0, 1000, 0, 'ms', v => delayNode && (delayNode.delayTime.value = v / 1000));
+                            ctrlRefs.delayFb = createHSlider(document.getElementById('delay-fb-wrap'), 'Feedback', 0, 90, 0, '%', v => delayFeedback && (delayFeedback.gain.value = v / 100));
 
-    // Pan & Gain
-    ctrlRefs.panKnob = createKnob(document.getElementById('pan-knob-container'), 'PAN', -1, 1, 0, '', 64, v => pannerNode && (pannerNode.pan.value = v));
-    ctrlRefs.gainKnob = createKnob(document.getElementById('gain-knob-container'), 'GAIN', 0, 150, 80, '%', 64, v => gainNode && (gainNode.gain.value = v / 100));
+                            // Pan & Gain
+                            ctrlRefs.panKnob = createKnob(document.getElementById('pan-knob-container'), 'PAN', -1, 1, 0, '', 64, v => pannerNode && (pannerNode.pan.value = v));
+                            ctrlRefs.gainKnob = createKnob(document.getElementById('gain-knob-container'), 'GAIN', 0, 150, 80, '%', 64, v => gainNode && (gainNode.gain.value = v / 100));
 
-    // Preset buttons
-    document.querySelectorAll('.preset-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            applyPreset(btn.dataset.preset);
-            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        });
-    });
+                            // Preset buttons
+                            document.querySelectorAll('.preset-btn').forEach(btn => {
+                                btn.addEventListener('click', () => {
+                                    applyPreset(btn.dataset.preset);
+                                    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                                    btn.classList.add('active');
+                                });
+                            });
 
-    savePresetBtn.addEventListener('click', saveCustomPreset);
-    resetPresetBtn.addEventListener('click', () => applyPreset('FLAT'));
-    presetSelect.addEventListener('change', () => {
-        if (!presetSelect.value) return;
-        const saved = JSON.parse(localStorage.getItem('wavecraft_presets') || '{}');
-        if (saved[presetSelect.value]) applyPreset(presetSelect.value, saved[presetSelect.value]);
-        presetSelect.value = '';
-    });
-    loadSavedPresets();
-}
+                            savePresetBtn.addEventListener('click', saveCustomPreset);
+                            resetPresetBtn.addEventListener('click', () => applyPreset('FLAT'));
+                            presetSelect.addEventListener('change', () => {
+                                if (!presetSelect.value) return;
+                                const saved = JSON.parse(localStorage.getItem('wavecraft_presets') || '{}');
+                                if (saved[presetSelect.value]) applyPreset(presetSelect.value, saved[presetSelect.value]);
+                                presetSelect.value = '';
+                            });
+                            loadSavedPresets();
+                        }
 
-// ── Stereo Width (approximated via gain tricks) ───────────
-function applyWidth(w) {
-    // w=1 = normal, w>1 = wider, w<1 = narrower
-    if (!pannerNode) return;
-    // Use compressor as a proxy hook; real M-S needs AudioWorklet
-    // For now: subtly spread by adjusting pan automation sim
-}
+                        // ── Stereo Width (approximated via gain tricks) ───────────
+                        function applyWidth(w) {
+                            // w=1 = normal, w>1 = wider, w<1 = narrower
+                            if (!pannerNode) return;
+                            // Use compressor as a proxy hook; real M-S needs AudioWorklet
+                            // For now: subtly spread by adjusting pan automation sim
+                        }
 
-// ── 3D Orbit ──────────────────────────────────────────────
-function animateOrbit() {
-    if (!is3D || !panner3DNode) return;
-    orbitAngle += 0.008;
-    const x = Math.sin(orbitAngle) * 2;
-    const z = Math.cos(orbitAngle) * 2;
-    panner3DNode.positionX.value = x;
-    panner3DNode.positionZ.value = z;
-    // Update spatial dot
-    const dotX = 50 + (x / 2) * 40;
-    const dotY = 50 + (z / 2) * 40;
-    spatialDot.style.left = dotX + '%';
-    spatialDot.style.top = dotY + '%';
-    spatialDot.style.transform = 'translate(-50%,-50%)';
-    if (is3D) requestAnimationFrame(animateOrbit);
-}
+                        // ── 3D Orbit ──────────────────────────────────────────────
+                        function animateOrbit() {
+                            if (!is3D || !panner3DNode) return;
+                            orbitAngle += 0.008;
+                            const x = Math.sin(orbitAngle) * 2;
+                            const z = Math.cos(orbitAngle) * 2;
+                            panner3DNode.positionX.value = x;
+                            panner3DNode.positionZ.value = z;
+                            // Update spatial dot
+                            const dotX = 50 + (x / 2) * 40;
+                            const dotY = 50 + (z / 2) * 40;
+                            spatialDot.style.left = dotX + '%';
+                            spatialDot.style.top = dotY + '%';
+                            spatialDot.style.transform = 'translate(-50%,-50%)';
+                            if (is3D) requestAnimationFrame(animateOrbit);
+                        }
 
-// ── Presets ───────────────────────────────────────────────
-function applyPreset(name, data) {
-    const p = data || PRESETS[name];
-    if (!p) return;
-    ctrlRefs.subSlider?.setVal(p.sub ?? 0);
-    ctrlRefs.bassSlider?.setVal(p.bass ?? 0);
-    ctrlRefs.midSlider?.setVal(p.mid ?? 0);
-    ctrlRefs.presSlider?.setVal(p.pres ?? 0);
-    ctrlRefs.trebleSlider?.setVal(p.treble ?? 0);
-    ctrlRefs.reverbDry?.setVal((p.reverb ?? 0) * 100);
-    ctrlRefs.delayTime?.setVal(p.delay ?? 0);
-    ctrlRefs.delayFb?.setVal(p.feedback ?? 0);
-    ctrlRefs.widthKnob?.setVal((p.width ?? 1) * 100);
-    ctrlRefs.panKnob?.setVal(p.pan ?? 0);
-    ctrlRefs.gainKnob?.setVal(p.gain ?? 80);
-    if (subFilter) subFilter.gain.value = p.sub ?? 0;
-    if (bassFilter) bassFilter.gain.value = p.bass ?? 0;
-    if (midFilter) midFilter.gain.value = p.mid ?? 0;
-    if (presFilter) presFilter.gain.value = p.pres ?? 0;
-    if (trebleFilter) trebleFilter.gain.value = p.treble ?? 0;
-    if (reverbGain) reverbGain.gain.value = (p.reverb ?? 0);
-    if (delayNode) delayNode.delayTime.value = (p.delay ?? 0) / 1000;
-    if (delayFeedback) delayFeedback.gain.value = (p.feedback ?? 0) / 100;
-    if (gainNode) gainNode.gain.value = (p.gain ?? 80) / 100;
-}
+                        // ── Presets ───────────────────────────────────────────────
+                        function applyPreset(name, data) {
+                            const p = data || PRESETS[name];
+                            if (!p) return;
+                            ctrlRefs.subSlider?.setVal(p.sub ?? 0);
+                            ctrlRefs.bassSlider?.setVal(p.bass ?? 0);
+                            ctrlRefs.midSlider?.setVal(p.mid ?? 0);
+                            ctrlRefs.presSlider?.setVal(p.pres ?? 0);
+                            ctrlRefs.trebleSlider?.setVal(p.treble ?? 0);
+                            ctrlRefs.reverbDry?.setVal((p.reverb ?? 0) * 100);
+                            ctrlRefs.delayTime?.setVal(p.delay ?? 0);
+                            ctrlRefs.delayFb?.setVal(p.feedback ?? 0);
+                            ctrlRefs.widthKnob?.setVal((p.width ?? 1) * 100);
+                            ctrlRefs.panKnob?.setVal(p.pan ?? 0);
+                            ctrlRefs.gainKnob?.setVal(p.gain ?? 80);
+                            if (subFilter) subFilter.gain.value = p.sub ?? 0;
+                            if (bassFilter) bassFilter.gain.value = p.bass ?? 0;
+                            if (midFilter) midFilter.gain.value = p.mid ?? 0;
+                            if (presFilter) presFilter.gain.value = p.pres ?? 0;
+                            if (trebleFilter) trebleFilter.gain.value = p.treble ?? 0;
+                            if (reverbGain) reverbGain.gain.value = (p.reverb ?? 0);
+                            if (delayNode) delayNode.delayTime.value = (p.delay ?? 0) / 1000;
+                            if (delayFeedback) delayFeedback.gain.value = (p.feedback ?? 0) / 100;
+                            if (gainNode) gainNode.gain.value = (p.gain ?? 80) / 100;
+                        }
 
-function saveCustomPreset() {
-    const nm = prompt('Preset name:');
-    if (!nm) return;
-    const saved = JSON.parse(localStorage.getItem('wavecraft_presets') || '{}');
-    saved[nm] = {
-        sub: ctrlRefs.subSlider?.getVal() ?? 0,
-        bass: ctrlRefs.bassSlider?.getVal() ?? 0,
-        mid: ctrlRefs.midSlider?.getVal() ?? 0,
-        pres: ctrlRefs.presSlider?.getVal() ?? 0,
-        treble: ctrlRefs.trebleSlider?.getVal() ?? 0,
-        reverb: (ctrlRefs.reverbDry?.getVal() ?? 0) / 100,
-        delay: ctrlRefs.delayTime?.getVal() ?? 0,
-        feedback: ctrlRefs.delayFb?.getVal() ?? 0,
-        width: (ctrlRefs.widthKnob?.getVal() ?? 100) / 100,
-        pan: ctrlRefs.panKnob?.getVal() ?? 0,
-        gain: ctrlRefs.gainKnob?.getVal() ?? 80,
-    };
-    localStorage.setItem('wavecraft_presets', JSON.stringify(saved));
-    loadSavedPresets();
-}
+                        function saveCustomPreset() {
+                            const nm = prompt('Preset name:');
+                            if (!nm) return;
+                            const saved = JSON.parse(localStorage.getItem('wavecraft_presets') || '{}');
+                            saved[nm] = {
+                                sub: ctrlRefs.subSlider?.getVal() ?? 0,
+                                bass: ctrlRefs.bassSlider?.getVal() ?? 0,
+                                mid: ctrlRefs.midSlider?.getVal() ?? 0,
+                                pres: ctrlRefs.presSlider?.getVal() ?? 0,
+                                treble: ctrlRefs.trebleSlider?.getVal() ?? 0,
+                                reverb: (ctrlRefs.reverbDry?.getVal() ?? 0) / 100,
+                                delay: ctrlRefs.delayTime?.getVal() ?? 0,
+                                feedback: ctrlRefs.delayFb?.getVal() ?? 0,
+                                width: (ctrlRefs.widthKnob?.getVal() ?? 100) / 100,
+                                pan: ctrlRefs.panKnob?.getVal() ?? 0,
+                                gain: ctrlRefs.gainKnob?.getVal() ?? 80,
+                            };
+                            localStorage.setItem('wavecraft_presets', JSON.stringify(saved));
+                            loadSavedPresets();
+                        }
 
-function loadSavedPresets() {
-    const saved = JSON.parse(localStorage.getItem('wavecraft_presets') || '{}');
-    while (presetSelect.options.length > 1) presetSelect.remove(1);
-    Object.keys(saved).forEach(k => {
-        const opt = document.createElement('option');
-        opt.value = k; opt.textContent = k;
-        presetSelect.appendChild(opt);
-    });
-}
+                        function loadSavedPresets() {
+                            const saved = JSON.parse(localStorage.getItem('wavecraft_presets') || '{}');
+                            while (presetSelect.options.length > 1) presetSelect.remove(1);
+                            Object.keys(saved).forEach(k => {
+                                const opt = document.createElement('option');
+                                opt.value = k; opt.textContent = k;
+                                presetSelect.appendChild(opt);
+                            });
+                        }
 
-// ── Visualizer Canvas Resize ──────────────────────────────
-function resizeCanvas() {
-    const rect = vizCanvas.parentElement.getBoundingClientRect();
-    vizCanvas.width = rect.width;
-    vizCanvas.height = rect.height;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+                        // ── Visualizer Canvas Resize ──────────────────────────────
+                        function resizeCanvas() {
+                            const rect = vizCanvas.parentElement.getBoundingClientRect();
+                            vizCanvas.width = rect.width;
+                            vizCanvas.height = rect.height;
+                        }
+                        window.addEventListener('resize', resizeCanvas);
+                        resizeCanvas();
 
-// ── Main Render Loop ──────────────────────────────────────
-const freqData = new Uint8Array(1024);
-const timeData = new Uint8Array(2048);
-const floatData = new Float32Array(2048);
+                        // ── Main Render Loop ──────────────────────────────────────
+                        const freqData = new Uint8Array(1024);
+                        const timeData = new Uint8Array(2048);
+                        const floatData = new Float32Array(2048);
 
-function renderLoop() {
-    animFrameId = requestAnimationFrame(renderLoop);
-    const W = vizCanvas.width, H = vizCanvas.height;
+                        function renderLoop() {
+                            animFrameId = requestAnimationFrame(renderLoop);
+                            const W = vizCanvas.width, H = vizCanvas.height;
 
-    // Seek bar update
-    if (isPlaying) {
-        let elapsed = 0, total = 0;
-        if (isStream && streamAudioEl && isFinite(streamAudioEl.duration)) {
-            elapsed = streamAudioEl.currentTime;
-            total = streamAudioEl.duration;
-        } else if (!isStream && fileDuration > 0) {
-            elapsed = audioCtx.currentTime - startTime;
-            total = fileDuration;
-        }
-        if (total > 0) {
-            const pct = clamp(elapsed / total, 0, 1);
-            seekFill.style.width = (pct * 100) + '%';
-            timeCurrent.textContent = fmtTime(elapsed);
-            if (isStream) timeTotal.textContent = fmtTime(total);
-        }
-    }
+                            // Seek bar update
+                            if (isPlaying) {
+                                let elapsed = 0, total = 0;
+                                if (isStream && streamAudioEl && isFinite(streamAudioEl.duration)) {
+                                    elapsed = streamAudioEl.currentTime;
+                                    total = streamAudioEl.duration;
+                                } else if (!isStream && fileDuration > 0) {
+                                    elapsed = audioCtx.currentTime - startTime;
+                                    total = fileDuration;
+                                }
+                                if (total > 0) {
+                                    const pct = clamp(elapsed / total, 0, 1);
+                                    seekFill.style.width = (pct * 100) + '%';
+                                    timeCurrent.textContent = fmtTime(elapsed);
+                                    if (isStream) timeTotal.textContent = fmtTime(total);
+                                }
+                            }
 
-    // Get frequency data
-    if (analyserNode) {
-        analyserNode.getByteFrequencyData(freqData);
-        analyserNode.getByteTimeDomainData(timeData);
-    }
+                            // Get frequency data
+                            if (analyserNode) {
+                                analyserNode.getByteFrequencyData(freqData);
+                                analyserNode.getByteTimeDomainData(timeData);
+                            }
 
-    // Clear or Fade (Trails)
-    if (currentMode === 'particles' || currentMode === 'wave' || currentMode === 'scope') {
-        ctx2d.fillStyle = 'rgba(18, 18, 18, 0.25)';
-        ctx2d.fillRect(0, 0, W, H);
-    } else {
-        ctx2d.clearRect(0, 0, W, H);
-    }
+                            // Clear or Fade (Trails)
+                            if (currentMode === 'particles' || currentMode === 'wave' || currentMode === 'scope') {
+                                ctx2d.fillStyle = 'rgba(18, 18, 18, 0.25)';
+                                ctx2d.fillRect(0, 0, W, H);
+                            } else {
+                                ctx2d.clearRect(0, 0, W, H);
+                            }
 
-    if (!audioBuffer && !isStream) { drawIdleAnimation(W, H); updateMeters(0, 0); return; }
+                            if (!audioBuffer && !isStream) { drawIdleAnimation(W, H); updateMeters(0, 0); return; }
 
-    switch (currentMode) {
-        case 'bars': drawBars(W, H); break;
-        case 'wave': drawWave(W, H); break;
-        case 'radial': drawRadial(W, H); break;
-        case 'particles': drawParticles(W, H); break;
-        case 'scope': drawScope(W, H); break;
-    }
+                            switch (currentMode) {
+                                case 'bars': drawBars(W, H); break;
+                                case 'wave': drawWave(W, H); break;
+                                case 'radial': drawRadial(W, H); break;
+                                case 'particles': drawParticles(W, H); break;
+                                case 'scope': drawScope(W, H); break;
+                            }
 
-    // Meters
-    const avgL = getChannelAvg(analyserL);
-    const avgR = getChannelAvg(analyserR);
-    updateMeters(avgL, avgR);
-}
+                            // Meters
+                            const avgL = getChannelAvg(analyserL);
+                            const avgR = getChannelAvg(analyserR);
+                            updateMeters(avgL, avgR);
+                        }
 
-function getChannelAvg(an) {
-    if (!an) return 0;
-    const d = new Uint8Array(an.frequencyBinCount);
-    an.getByteFrequencyData(d);
-    return d.reduce((s, v) => s + v, 0) / d.length / 255;
-}
+                        function getChannelAvg(an) {
+                            if (!an) return 0;
+                            const d = new Uint8Array(an.frequencyBinCount);
+                            an.getByteFrequencyData(d);
+                            return d.reduce((s, v) => s + v, 0) / d.length / 255;
+                        }
 
-function getBandAvg(data, startBin, endBin) {
-    let sum = 0;
-    for (let i = startBin; i <= endBin; i++) sum += data[i] || 0;
-    return (sum / (endBin - startBin + 1)) / 255;
-}
+                        function getBandAvg(data, startBin, endBin) {
+                            let sum = 0;
+                            for (let i = startBin; i <= endBin; i++) sum += data[i] || 0;
+                            return (sum / (endBin - startBin + 1)) / 255;
+                        }
 
-function updateMeters(l, r) {
-    const lpct = l * 100, rpct = r * 100;
-    meterL.style.height = lpct + '%';
-    meterR.style.height = rpct + '%';
-    // Peak hold
-    if (lpct > peakHoldL) { peakHoldL = lpct; peakTimerL = Date.now(); }
-    else if (Date.now() - peakTimerL > 1500) peakHoldL = Math.max(0, peakHoldL - 0.8);
-    if (rpct > peakHoldR) { peakHoldR = rpct; peakTimerR = Date.now(); }
-    else if (Date.now() - peakTimerR > 1500) peakHoldR = Math.max(0, peakHoldR - 0.8);
-    peakLEl.style.bottom = clamp(peakHoldL, 0, 99) + '%';
-    peakREl.style.bottom = clamp(peakHoldR, 0, 99) + '%';
-    // Color meter
-    const meterColor = pct => pct > 90 ? '#E91429' : pct > 70 ? '#F59B23' : '#1DB954';
-    meterL.style.background = meterColor(lpct);
-    meterR.style.background = meterColor(rpct);
-}
+                        function updateMeters(l, r) {
+                            const lpct = l * 100, rpct = r * 100;
+                            meterL.style.height = lpct + '%';
+                            meterR.style.height = rpct + '%';
+                            // Peak hold
+                            if (lpct > peakHoldL) { peakHoldL = lpct; peakTimerL = Date.now(); }
+                            else if (Date.now() - peakTimerL > 1500) peakHoldL = Math.max(0, peakHoldL - 0.8);
+                            if (rpct > peakHoldR) { peakHoldR = rpct; peakTimerR = Date.now(); }
+                            else if (Date.now() - peakTimerR > 1500) peakHoldR = Math.max(0, peakHoldR - 0.8);
+                            peakLEl.style.bottom = clamp(peakHoldL, 0, 99) + '%';
+                            peakREl.style.bottom = clamp(peakHoldR, 0, 99) + '%';
+                            // Color meter
+                            const meterColor = pct => pct > 90 ? '#E91429' : pct > 70 ? '#F59B23' : '#1DB954';
+                            meterL.style.background = meterColor(lpct);
+                            meterR.style.background = meterColor(rpct);
+                        }
 
-// ── Idle animation (before file load) ────────────────────
-function drawIdleAnimation(W, H) {
-    const t = Date.now() / 1000;
-    ctx2d.strokeStyle = 'rgba(29,185,84,0.15)';
-    ctx2d.lineWidth = 1.5;
-    for (let i = 0; i < 5; i++) {
-        const amp = 20 + i * 8;
-        const freq = 0.012 + i * 0.003;
-        const phase = t * (0.3 + i * 0.1);
-        ctx2d.beginPath();
-        for (let x = 0; x <= W; x += 2) {
-            const y = H / 2 + Math.sin(x * freq + phase) * amp * Math.sin(t + i);
-            x === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
-        }
-        ctx2d.stroke();
-    }
-}
+                        // ── Idle animation (before file load) ────────────────────
+                        function drawIdleAnimation(W, H) {
+                            const t = Date.now() / 1000;
+                            ctx2d.strokeStyle = 'rgba(29,185,84,0.15)';
+                            ctx2d.lineWidth = 1.5;
+                            for (let i = 0; i < 5; i++) {
+                                const amp = 20 + i * 8;
+                                const freq = 0.012 + i * 0.003;
+                                const phase = t * (0.3 + i * 0.1);
+                                ctx2d.beginPath();
+                                for (let x = 0; x <= W; x += 2) {
+                                    const y = H / 2 + Math.sin(x * freq + phase) * amp * Math.sin(t + i);
+                                    x === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
+                                }
+                                ctx2d.stroke();
+                            }
+                        }
 
-// ── BARS mode (rewritten) ────────────────────────────────────
-const peakBars = new Float32Array(128); // Peak hold values per bar
-function drawBars(W, H) {
-    const bins = 128;
-    const gap = 2;
-    const barW = Math.floor((W - gap * (bins - 1)) / bins);
-    const halfH = H / 2;
-    ctx2d.save();
-    ctx2d.clearRect(0, 0, W, H);
-    for (let i = 0; i < bins; i++) {
-        // Raise to a power to increase dynamic range
-        const raw = freqData[i] / 255;
-        const val = Math.pow(raw, 1.8);
-        const barH = Math.max(2, val * halfH * 0.95);
-        const x = i * (barW + gap);
+                        // ── BARS mode (rewritten) ────────────────────────────────────
+                        const peakBars = new Float32Array(128); // Peak hold values per bar
+                        function drawBars(W, H) {
+                            const bins = 128;
+                            const gap = 2;
+                            const barW = Math.floor((W - gap * (bins - 1)) / bins);
+                            const halfH = H / 2;
+                            ctx2d.save();
+                            ctx2d.clearRect(0, 0, W, H);
+                            for (let i = 0; i < bins; i++) {
+                                // Raise to a power to increase dynamic range
+                                const raw = freqData[i] / 255;
+                                const val = Math.pow(raw, 1.8);
+                                const barH = Math.max(2, val * halfH * 0.95);
+                                const x = i * (barW + gap);
 
-        // Peak hold logic
-        if (val * halfH * 0.95 > peakBars[i]) {
-            peakBars[i] = val * halfH * 0.95;
-        } else {
-            peakBars[i] = Math.max(0, peakBars[i] - 1.5);
-        }
+                                // Peak hold logic
+                                if (val * halfH * 0.95 > peakBars[i]) {
+                                    peakBars[i] = val * halfH * 0.95;
+                                } else {
+                                    peakBars[i] = Math.max(0, peakBars[i] - 1.5);
+                                }
 
-        // Gradient per bar from bottom
-        const grad = ctx2d.createLinearGradient(0, halfH + barH, 0, halfH);
-        grad.addColorStop(0, \`hsl(141, 80%, 35%)\`);
+                                // Gradient per bar from bottom
+                                const grad = ctx2d.createLinearGradient(0, halfH + barH, 0, halfH);
+                                grad.addColorStop(0, \`hsl(141, 80%, 35%)\`);
         grad.addColorStop(0.6, \`hsl(141, 75%, 50%)\`);
         grad.addColorStop(1, val > 0.7 ? '#fff' : '#a3f0c1');
         ctx2d.fillStyle = grad;

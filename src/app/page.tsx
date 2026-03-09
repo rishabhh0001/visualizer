@@ -203,7 +203,7 @@ export default function Home() {
             <ul className="flex flex-col gap-4 text-sm text-white/60">
               <li><a href="#" className="hover:text-emerald-400 transition-colors">Privacy Policy</a></li>
               <li><a href="#" className="hover:text-emerald-400 transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-emerald-400 transition-colors">Cookie Policy</a></li>
+              <li><a href="https://github.com/rishabhh0001/visualizer" className="hover:text-emerald-400 transition-colors">Cookie Policy</a></li>
             </ul>
           </div>
         </div>
@@ -211,9 +211,9 @@ export default function Home() {
         <div className="w-full flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-white/20 font-medium px-4">
           <p>© 2026 Wavecraft Digital. Engineered for performance.</p>
           <div className="flex items-center gap-6">
-            <a href="https://twitter.com" className="hover:text-white transition-colors">TWITTER</a>
-            <a href="https://instagram.com" className="hover:text-white transition-colors">INSTAGRAM</a>
-            <a href="https://discord.com" className="hover:text-white transition-colors">DISCORD</a>
+            <a href="https://linkedin.com/in/rishabh0001" className="hover:text-white transition-colors">LINKEDIN</a>
+            <a href="https://instagram.com/rishabh0001" className="hover:text-white transition-colors">INSTAGRAM</a>
+            <a href="https://github.com/rishabhh0001" className="hover:text-white transition-colors">GITHUB</a>
           </div>
         </div>
       </footer>
