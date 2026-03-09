@@ -39,7 +39,7 @@ export default function Home() {
           </a>
         </div>
         <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 hover:bg-black/60 transition-colors">
-          <a href="/visualizer" className="flex items-center gap-1.5 text-xs font-medium text-white/60 hover:text-white transition-colors px-3 py-1">
+          <a href="/visualizer.html" className="flex items-center gap-1.5 text-xs font-medium text-white/60 hover:text-white transition-colors px-3 py-1">
             <Radio className="w-3.5 h-3.5" /> Visualizer
           </a>
           <div className="w-px h-3 bg-white/10" />
@@ -100,7 +100,7 @@ export default function Home() {
           >
             Launch Remixer Pro
           </a>
-          <a href="/visualizer"
+          <a href="/visualizer.html"
             className="px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-medium text-sm hover:bg-white/10 transition-all backdrop-blur-md hover:border-white/20"
           >
             Open Visualizer
