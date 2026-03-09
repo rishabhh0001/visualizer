@@ -5,7 +5,7 @@ import { AudioWaveform, Disc3, Radio } from "lucide-react";
 
 export default function Home() {
   return (
-    <main className="relative w-full h-screen overflow-hidden bg-black text-white flex flex-col items-center justify-center p-6 text-center">
+    <main className="relative w-full min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 pt-32 pb-20 text-center">
       {/* Animated grid background */}
       <div className="absolute inset-0 z-0" style={{
         backgroundImage: `
