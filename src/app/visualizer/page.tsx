@@ -1,4 +1,11 @@
 import { engineHtml } from "./engineHtml";
+import type { Metadata } from 'next';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+    title: 'Wavecraft Visualizer',
+};
 
 export default function VisualizerPage() {
     return (
