@@ -30,8 +30,10 @@ export default function Home() {
         className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-8 py-5"
       >
         <div className="flex items-center gap-2 text-white font-black text-lg tracking-tighter">
-          <AudioWaveform className="w-5 h-5 text-emerald-500" />
-          WAVE<span className="text-emerald-500">CRAFT</span>
+          <a href="/" className="flex items-center gap-2 group">
+            <AudioWaveform className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
+            WAVE<span className="text-emerald-500">CRAFT</span>
+          </a>
           <span className="text-zinc-600 mx-1">·</span>
           <a href="https://rishabhj.in" target="_blank" rel="noopener"
             className="text-emerald-500 text-xs font-semibold hover:text-emerald-400 transition-colors" style={{ opacity: 0.85 }}>
@@ -121,6 +123,100 @@ export default function Home() {
           ))}
         </motion.div>
       </div>
+
+      {/* Features Section */}
+      <section className="relative z-10 max-w-6xl w-full mt-40 grid grid-cols-1 md:grid-cols-3 gap-8 text-left px-4">
+        <div className="p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-colors group">
+          <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Disc3 className="text-emerald-500 w-6 h-6" />
+          </div>
+          <h3 className="text-xl font-bold mb-4">Remixer Pro</h3>
+          <p className="text-white/40 text-sm leading-relaxed">
+            A professional dual-deck DJ interface with real-time pitch control, 3-band EQ, and crossfading. Designed for seamless performance in the browser.
+          </p>
+        </div>
+
+        <div className="p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-colors group">
+          <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <AudioWaveform className="text-cyan-500 w-6 h-6" />
+          </div>
+          <h3 className="text-xl font-bold mb-4">3D Visualizer</h3>
+          <p className="text-white/40 text-sm leading-relaxed">
+            High-fidelity audio visualizations including mirrored bars, radials, and particles. Responsive 60FPS rendering for an immersive experience.
+          </p>
+        </div>
+
+        <div className="p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-colors group">
+          <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Radio className="text-purple-500 w-6 h-6" />
+          </div>
+          <h3 className="text-xl font-bold mb-4">Spatial Audio</h3>
+          <p className="text-white/40 text-sm leading-relaxed">
+            Experience sound in 3D. Our HRTF panner and surround sound simulation bring depth and width to your audio directly in the web.
+          </p>
+        </div>
+      </section>
+
+      {/* Stats/Social Proof */}
+      <section className="relative z-10 w-full mt-40 border-y border-white/10 py-20 overflow-hidden">
+        <div className="flex flex-wrap justify-center gap-20 opacity-40 grayscale hover:opacity-100 hover:grayscale-0 transition-all">
+          <div className="text-center">
+            <div className="text-4xl font-black mb-2">0ms</div>
+            <div className="text-[10px] font-bold tracking-widest uppercase">Latency</div>
+          </div>
+          <div className="text-center">
+            <div className="text-4xl font-black mb-2">32-bit</div>
+            <div className="text-[10px] font-bold tracking-widest uppercase">Processing</div>
+          </div>
+          <div className="text-center">
+            <div className="text-4xl font-black mb-2">60fps</div>
+            <div className="text-[10px] font-bold tracking-widest uppercase">Rendering</div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 w-full max-w-6xl mt-40 pt-20 pb-10 border-t border-white/10 flex flex-col items-center">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 w-full text-left mb-20 px-4">
+          <div className="col-span-1 md:col-span-2">
+            <div className="flex items-center gap-2 text-white font-black text-xl tracking-tighter mb-6">
+              <AudioWaveform className="w-6 h-6 text-emerald-500" />
+              WAVE<span className="text-emerald-500">CRAFT</span>
+            </div>
+            <p className="text-white/40 text-sm max-w-xs leading-relaxed">
+              Pushing the boundaries of what is possible with Web Audio and real-time visualizations. High-performance audio engineering meets creative coding.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-xs font-bold tracking-widest uppercase mb-6 text-white/40">Platform</h4>
+            <ul className="flex flex-col gap-4 text-sm text-white/60">
+              <li><a href="/remixer" className="hover:text-emerald-400 transition-colors">Remixer Pro</a></li>
+              <li><a href="/visualizer" className="hover:text-emerald-400 transition-colors">Visualizer</a></li>
+              <li><a href="#" className="hover:text-emerald-400 transition-colors">Documentation</a></li>
+              <li><a href="#" className="hover:text-emerald-400 transition-colors">GitHub</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-xs font-bold tracking-widest uppercase mb-6 text-white/40">Legal</h4>
+            <ul className="flex flex-col gap-4 text-sm text-white/60">
+              <li><a href="#" className="hover:text-emerald-400 transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-emerald-400 transition-colors">Terms of Service</a></li>
+              <li><a href="#" className="hover:text-emerald-400 transition-colors">Cookie Policy</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="w-full flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-white/20 font-medium px-4">
+          <p>© 2026 Wavecraft Digital. Engineered for performance.</p>
+          <div className="flex items-center gap-6">
+            <a href="https://twitter.com" className="hover:text-white transition-colors">TWITTER</a>
+            <a href="https://instagram.com" className="hover:text-white transition-colors">INSTAGRAM</a>
+            <a href="https://discord.com" className="hover:text-white transition-colors">DISCORD</a>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

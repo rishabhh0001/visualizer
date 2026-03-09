@@ -1831,16 +1831,33 @@ document.querySelectorAll('.mode-tab').forEach(btn => {
 browseLink.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', e => { if (e.target.files[0]) loadAudioFile(e.target.files[0]); });
 
-dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('drag-over'); });
-dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag-over'));
+// Global Drag & Drop handling for better UX
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => e.preventDefault());
+
+dropArea.addEventListener('dragover', e => { 
+    e.preventDefault(); 
+    e.stopPropagation();
+    dropArea.classList.add('drag-over'); 
+});
+dropArea.addEventListener('dragleave', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropArea.classList.remove('drag-over');
+});
 dropArea.addEventListener('drop', e => {
-    e.preventDefault(); dropArea.classList.remove('drag-over');
+    e.preventDefault();
+    e.stopPropagation();
+    dropArea.classList.remove('drag-over');
+    initAudioContext();
+    if (audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); }
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('audio')) loadAudioFile(file);
+    if (file && file.type.startsWith('audio')) { loadAudioFile(file); }
 });
 
+
 streamBtn.addEventListener('click', () => {
-    let url = streamInput.value.trim();
+    const url = streamInput.value.trim();
     if (!url) return;
     initAudioContext();
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -1848,8 +1865,13 @@ streamBtn.addEventListener('click', () => {
     streamLoading.style.display = 'block';
 
     // Use an audio tag to stream the URL
-    if (streamAudioEl) { streamAudioEl.pause(); streamAudioEl.src = ''; }
-    if (sourceNode) { try { sourceNode.stop(); } catch (e) { } }
+    if (streamAudioEl) {
+        streamAudioEl.pause();
+        streamAudioEl.src = '';
+    }
+    if (sourceNode) {
+        try { sourceNode.stop(); } catch (e) { }
+    }
 
     streamAudioEl = new Audio(url);
     streamAudioEl.crossOrigin = 'anonymous';
@@ -1870,7 +1892,7 @@ streamBtn.addEventListener('click', () => {
         const W = document.getElementById('waveform-canvas').width;
         const H = document.getElementById('waveform-canvas').height;
         const cx = document.getElementById('waveform-canvas').getContext('2d');
-        cx.clearRect(0, 0, W, H); // clear static waveform
+        cx.clearRect(0, 0, W, H);
 
         startPlayback(0);
     });

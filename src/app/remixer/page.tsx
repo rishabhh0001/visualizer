@@ -10,22 +10,22 @@ export default function RemixerPage() {
     const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
     const [crossfader, setCrossfader] = useState(0.5); // 0 = A, 1 = B
 
-    // EQs (0-1)
-    const [eqA, setEqA] = useState({ high: 0.5, mid: 0.5, low: 0.5 });
-    const [eqB, setEqB] = useState({ high: 0.5, mid: 0.5, low: 0.5 });
-
     const deckA = useAudioDeck(audioContext);
     const deckB = useAudioDeck(audioContext);
 
-    useEffect(() => {
-        // Init AudioContext on first click to bypass browser autoplay policies
-        const initAudio = () => {
-            if (!audioContext) {
-                const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-                setAudioContext(ctx);
-            }
-        };
+    const initAudio = () => {
+        if (!audioContext) {
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            setAudioContext(ctx);
+            return ctx;
+        }
+        if (audioContext.state === "suspended") {
+            audioContext.resume();
+        }
+        return audioContext;
+    };
 
+    useEffect(() => {
         document.addEventListener("click", initAudio, { once: true });
         return () => document.removeEventListener("click", initAudio);
     }, [audioContext]);
@@ -87,7 +87,7 @@ export default function RemixerPage() {
             {/* Main DJ Interface */}
             <div className="flex flex-1 gap-4 min-h-0 z-10">
                 {/* Left Deck (Deck A) */}
-                <Deck deckName="A" colorClass="emerald" audioState={deckA} />
+                <Deck deckName="A" colorClass="emerald" audioState={deckA} onInteraction={initAudio} />
 
                 {/* Central Mixer */}
                 <div className="w-80 flex flex-col gap-4 shrink-0">
@@ -111,31 +111,135 @@ export default function RemixerPage() {
                             <div className="flex flex-col items-center gap-6">
                                 <div className="text-emerald-500 text-[10px] font-bold tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">CH A</div>
 
-                                {['HIGH', 'MID', 'LOW'].map((band) => (
+                                {['high', 'mid', 'low'].map((band) => (
                                     <div key={band} className="flex flex-col items-center gap-2">
-                                        <span className="text-white/30 text-[9px] font-mono">{band}</span>
-                                        <div className="w-10 h-10 rounded-full border border-emerald-500/30 bg-black relative cursor-pointer hover:border-emerald-500/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)]">
-                                            <div className="w-1 h-3 bg-emerald-500 absolute top-1 left-1/2 -translate-x-1/2 rounded-full shadow-[0_0_5px_#10b981]" />
+                                        <span className="text-white/30 text-[9px] font-mono uppercase">{band}</span>
+                                        <div
+                                            className="w-10 h-10 rounded-full border border-emerald-500/30 bg-black relative cursor-pointer hover:border-emerald-500/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)]"
+                                            onClick={() => {
+                                                const current = (deckA.eq as any)[band];
+                                                const next = current === 0 ? 12 : current === 12 ? -12 : 0;
+                                                deckA.setEq({ ...deckA.eq, [band]: next });
+                                            }}
+                                            onWheel={(e) => {
+                                                const delta = e.deltaY > 0 ? -1 : 1;
+                                                const next = Math.max(-12, Math.min(12, (deckA.eq as any)[band] + delta));
+                                                deckA.setEq({ ...deckA.eq, [band]: next });
+                                            }}
+                                        >
+                                            <div
+                                                className="w-1 h-3 bg-emerald-500 absolute top-1 left-1/2 -translate-x-1/2 rounded-full shadow-[0_0_5px_#10b981]"
+                                                style={{
+                                                    transform: `translateX(-50%) rotate(${(deckA.eq as any)[band] * 15}deg)`,
+                                                    transformOrigin: "bottom center"
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                 ))}
                             </div>
 
-                            {/* Master / Meters */}
-                            <div className="flex flex-col items-center justify-between py-8 content-center">
-                                <div className="w-10 h-48 bg-black/60 border border-white/10 rounded-lg overflow-hidden flex justify-center gap-1.5 p-1.5 shadow-inner">
-                                    {/* Left specific fake meter for aesthetics since analyser nodes are heavy */}
-                                    <div className="w-2.5 h-full flex flex-col justify-end gap-[1px]">
-                                        {Array.from({ length: 20 }).map((_, i) => (
-                                            <div key={`L${i}`} className={`w-full flex-1 rounded-sm opacity-20 ${i < 4 ? 'bg-red-500' : i < 8 ? 'bg-yellow-500' : 'bg-emerald-500'}`} />
-                                        ))}
+                            {/* Master / Meters / FX */}
+                            <div className="flex flex-col items-center justify-between py-2 gap-4">
+                                <div className="text-white/20 text-[9px] font-bold tracking-[0.2em] uppercase">FX & DYNAMICS</div>
+
+                                <div className="flex flex-col gap-4">
+                                    {/* Delay Feedback Knob */}
+                                    <div className="flex flex-col items-center gap-1">
+                                        <div
+                                            className="w-8 h-8 rounded-full border border-white/10 bg-black/40 relative cursor-pointer hover:border-white/30"
+                                            onWheel={(e) => {
+                                                const delta = e.deltaY > 0 ? -0.05 : 0.05;
+                                                deckA.setFx({ ...deckA.fx, delayFeedback: Math.max(0, Math.min(0.9, deckA.fx.delayFeedback + delta)) });
+                                                deckB.setFx({ ...deckB.fx, delayFeedback: Math.max(0, Math.min(0.9, deckB.fx.delayFeedback + delta)) });
+                                            }}
+                                        >
+                                            <div
+                                                className="w-0.5 h-2.5 bg-white/40 absolute top-1 left-1/2 -translate-x-1/2 rounded-full"
+                                                style={{ transform: `translateX(-50%) rotate(${deckA.fx.delayFeedback * 300 - 150}deg)`, transformOrigin: "bottom center" }}
+                                            />
+                                        </div>
+                                        <span className="text-[8px] text-white/30 uppercase">Delay</span>
                                     </div>
-                                    {/* Right specific fake meter */}
-                                    <div className="w-2.5 h-full flex flex-col justify-end gap-[1px]">
-                                        {Array.from({ length: 20 }).map((_, i) => (
-                                            <div key={`R${i}`} className={`w-full flex-1 rounded-sm opacity-20 ${i < 4 ? 'bg-red-500' : i < 8 ? 'bg-yellow-500' : 'bg-emerald-500'}`} />
-                                        ))}
+
+                                    {/* Reverb Mix Knob */}
+                                    <div className="flex flex-col items-center gap-1">
+                                        <div
+                                            className="w-8 h-8 rounded-full border border-white/10 bg-black/40 relative cursor-pointer hover:border-white/30"
+                                            onWheel={(e) => {
+                                                const delta = e.deltaY > 0 ? -0.05 : 0.05;
+                                                deckA.setFx({ ...deckA.fx, reverbMix: Math.max(0, Math.min(0.8, deckA.fx.reverbMix + delta)) });
+                                                deckB.setFx({ ...deckB.fx, reverbMix: Math.max(0, Math.min(0.8, deckB.fx.reverbMix + delta)) });
+                                            }}
+                                        >
+                                            <div
+                                                className="w-0.5 h-2.5 bg-white/40 absolute top-1 left-1/2 -translate-x-1/2 rounded-full"
+                                                style={{ transform: `translateX(-50%) rotate(${deckA.fx.reverbMix * 300 - 150}deg)`, transformOrigin: "bottom center" }}
+                                            />
+                                        </div>
+                                        <span className="text-[8px] text-white/30 uppercase">Rev</span>
                                     </div>
+
+                                    {/* Width / Spatial Knob */}
+                                    <div className="flex flex-col items-center gap-1">
+                                        <div
+                                            className="w-8 h-8 rounded-full border border-white/10 bg-black/40 relative cursor-pointer hover:border-white/30"
+                                            onWheel={(e) => {
+                                                const delta = e.deltaY > 0 ? -0.05 : 0.05;
+                                                const next = Math.max(0.5, Math.min(2.0, deckA.fx.width + delta));
+                                                deckA.setFx({ ...deckA.fx, width: next });
+                                                deckB.setFx({ ...deckB.fx, width: next });
+                                            }}
+                                        >
+                                            <div
+                                                className="w-0.5 h-2.5 bg-cyan-400 absolute top-1 left-1/2 -translate-x-1/2 rounded-full shadow-[0_0_5px_rgba(34,211,238,0.5)]"
+                                                style={{ transform: `translateX(-50%) rotate(${((deckA.fx.width - 0.5) / 1.5) * 300 - 150}deg)`, transformOrigin: "bottom center" }}
+                                            />
+                                        </div>
+                                        <span className="text-[8px] text-white/30 uppercase">Wide</span>
+                                    </div>
+
+                                    {/* Comp Knob */}
+                                    <div className="flex flex-col items-center gap-1">
+                                        <div
+                                            className="w-8 h-8 rounded-full border border-white/10 bg-black/40 relative cursor-pointer hover:border-white/30"
+                                            onWheel={(e) => {
+                                                const delta = e.deltaY > 0 ? -1 : 1;
+                                                const next = Math.max(-60, Math.min(0, deckA.fx.compression + delta));
+                                                deckA.setFx({ ...deckA.fx, compression: next });
+                                                deckB.setFx({ ...deckB.fx, compression: next });
+                                            }}
+                                        >
+                                            <div
+                                                className="w-0.5 h-2.5 bg-emerald-400 absolute top-1 left-1/2 -translate-x-1/2 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.5)]"
+                                                style={{ transform: `translateX(-50%) rotate(${((deckA.fx.compression + 60) / 60) * 300 - 150}deg)`, transformOrigin: "bottom center" }}
+                                            />
+                                        </div>
+                                        <span className="text-[8px] text-white/30 uppercase">Comp</span>
+                                    </div>
+                                </div>
+
+                                {/* Channel Filters */}
+                                <div className="flex gap-12 mt-4">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <div className="w-10 h-10 rounded-full border-2 border-white/5 bg-black relative cursor-pointer hover:border-emerald-500/30 transition-colors">
+                                            <div className="w-0.5 h-3 bg-emerald-500 absolute top-1 left-1/2 -translate-x-1/2 rounded-full"
+                                                style={{ transform: "translateX(-50%) rotate(0deg)", transformOrigin: "bottom center" }} />
+                                        </div>
+                                        <span className="text-[7px] text-white/20 uppercase font-black">Deck A Fil</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <div className="w-10 h-10 rounded-full border-2 border-white/5 bg-black relative cursor-pointer hover:border-cyan-500/30 transition-colors">
+                                            <div className="w-0.5 h-3 bg-cyan-500 absolute top-1 left-1/2 -translate-x-1/2 rounded-full"
+                                                style={{ transform: "translateX(-50%) rotate(0deg)", transformOrigin: "bottom center" }} />
+                                        </div>
+                                        <span className="text-[7px] text-white/20 uppercase font-black">Deck B Fil</span>
+                                    </div>
+                                </div>
+
+                                <div className="w-1.5 h-32 bg-black/60 rounded-full border border-white/5 relative overflow-hidden">
+                                    <div className="absolute bottom-0 w-full bg-emerald-500/40" style={{ height: '40%' }} />
+                                    <div className="absolute bottom-0 w-full bg-white/10" style={{ height: '100%' }} />
                                 </div>
                             </div>
 
@@ -143,11 +247,29 @@ export default function RemixerPage() {
                             <div className="flex flex-col items-center gap-6">
                                 <div className="text-cyan-500 text-[10px] font-bold tracking-widest bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">CH B</div>
 
-                                {['HIGH', 'MID', 'LOW'].map((band) => (
+                                {['high', 'mid', 'low'].map((band) => (
                                     <div key={band} className="flex flex-col items-center gap-2">
-                                        <span className="text-white/30 text-[9px] font-mono">{band}</span>
-                                        <div className="w-10 h-10 rounded-full border border-cyan-500/30 bg-black relative cursor-pointer hover:border-cyan-500/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)]">
-                                            <div className="w-1 h-3 bg-cyan-500 absolute top-1 left-1/2 -translate-x-1/2 rounded-full shadow-[0_0_5px_#06b6d4]" />
+                                        <span className="text-white/30 text-[9px] font-mono uppercase">{band}</span>
+                                        <div
+                                            className="w-10 h-10 rounded-full border border-cyan-500/30 bg-black relative cursor-pointer hover:border-cyan-500/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)]"
+                                            onClick={() => {
+                                                const current = (deckB.eq as any)[band];
+                                                const next = current === 0 ? 12 : current === 12 ? -12 : 0;
+                                                deckB.setEq({ ...deckB.eq, [band]: next });
+                                            }}
+                                            onWheel={(e) => {
+                                                const delta = e.deltaY > 0 ? -1 : 1;
+                                                const next = Math.max(-12, Math.min(12, (deckB.eq as any)[band] + delta));
+                                                deckB.setEq({ ...deckB.eq, [band]: next });
+                                            }}
+                                        >
+                                            <div
+                                                className="w-1 h-3 bg-cyan-500 absolute top-1 left-1/2 -translate-x-1/2 rounded-full shadow-[0_0_5px_#06b6d4]"
+                                                style={{
+                                                    transform: `translateX(-50%) rotate(${(deckB.eq as any)[band] * 15}deg)`,
+                                                    transformOrigin: "bottom center"
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                 ))}
@@ -184,7 +306,7 @@ export default function RemixerPage() {
                 </div>
 
                 {/* Right Deck (Deck B) */}
-                <Deck deckName="B" colorClass="cyan" audioState={deckB} />
+                <Deck deckName="B" colorClass="cyan" audioState={deckB} onInteraction={initAudio} />
             </div>
 
             {/* Track Library / Bottom Panel */}

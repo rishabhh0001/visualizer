@@ -5,18 +5,23 @@ import { useState, useRef } from "react";
 export function Deck({
     deckName,
     colorClass = "emerald",
-    audioState
+    audioState,
+    onInteraction
 }: {
     deckName: string;
     colorClass?: string;
     audioState: any;
+    onInteraction?: () => void;
 }) {
     const [isDragging, setIsDragging] = useState(false);
 
     const {
         file, isPlaying, currentTime, duration,
-        togglePlayback, seek, loadFile, setPitch, pitch
+        togglePlayback, seek, loadFile, setPitch, pitch,
+        setFx, fx
     } = audioState;
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -35,6 +40,7 @@ export function Deck({
         e.preventDefault();
         e.stopPropagation();
         setIsDragging(false);
+        onInteraction?.();
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const file = e.dataTransfer.files[0];
             if (file.type.startsWith("audio/")) {
@@ -64,12 +70,14 @@ export function Deck({
         >
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border"
+                    <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border"
                         style={{
                             background: `rgba(${colorClass === "emerald" ? "16,185,129" : "6,182,212"},0.15)`,
                             borderColor: colorHex,
                             color: colorHex
-                        }}>
+                        }}
+                    >
                         {deckName}
                     </div>
                     <div>
@@ -83,6 +91,25 @@ export function Deck({
                         </div>
                     </div>
                 </div>
+                <button
+                    onClick={() => {
+                        onInteraction?.();
+                        fileInputRef.current?.click();
+                    }}
+                    className="text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 rounded px-2 py-1 text-white/50 hover:text-white transition-colors uppercase font-bold tracking-wider"
+                >
+                    Browse
+                </button>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="audio/*"
+                    onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) loadFile(f);
+                    }}
+                />
             </div>
 
             {/* Waveform / Progress Scrub */}
@@ -137,7 +164,8 @@ export function Deck({
                         background: isPlaying ? `rgba(${colorClass === "emerald" ? "16,185,129" : "6,182,212"},0.2)` : "rgba(255,255,255,0.1)",
                         border: isPlaying ? `1px solid ${colorHex}` : "1px solid transparent",
                         boxShadow: isPlaying ? `0 0 20px rgba(${colorClass === "emerald" ? "16,185,129" : "6,182,212"},0.2)` : "none"
-                    }}>
+                    }}
+                >
                     {isPlaying
                         ? <svg width="24" height="24" viewBox="0 0 24 24" fill={colorHex}><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
                         : <svg width="24" height="24" viewBox="0 0 24 24" fill="white" style={{ marginLeft: 3 }}><polygon points="5,3 19,12 5,21" /></svg>
