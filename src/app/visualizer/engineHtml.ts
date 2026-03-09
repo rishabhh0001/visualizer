@@ -1502,7 +1502,7 @@ const presetSelect = document.getElementById('preset-select');
 const ctrlRefs = {};
 
 // ── Utility ───────────────────────────────────────────────
-const fmtTime = s => { const m = Math.floor(s / 60); return \`${m}:${String(Math.floor(s % 60)).padStart(2, '0')}\`; };
+const fmtTime = s => { const m = Math.floor(s / 60); return \`\${m}:\${String(Math.floor(s % 60)).padStart(2, '0')}\`; };
 const clamp = (v, mn, mx) => Math.min(mx, Math.max(mn, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -1621,7 +1621,7 @@ function loadAudioFile(file) {
             fileDuration = buf.duration;
             const name = file.name.replace(/\.[^.]+$/, '');
             headerTitle.textContent = name;
-            headerArtist.textContent = \`${fmtTime(fileDuration)} · ${(file.size / 1048576).toFixed(1)} MB\`;
+            headerArtist.textContent = \`\${fmtTime(fileDuration)} · \${(file.size / 1048576).toFixed(1)} MB\`;
             seekTrackName.textContent = name;
             timeTotal.textContent = fmtTime(fileDuration);
             uploadZone.style.display = 'none';
@@ -1915,7 +1915,7 @@ function createKnob(container, label, min, max, def, unit, size, onChange) {
 
     const ns = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', \`0 0 ${size} ${size}\`);
+    svg.setAttribute('viewBox', \`0 0 \${size} \${size}\`);
 
     const cx = size / 2, cy = size / 2, r = size / 2 - 5, sw = 3;
     const startA = 135 * Math.PI / 180, endA = 405 * Math.PI / 180;
@@ -1991,7 +1991,7 @@ function describeArc(cx, cy, r, startDeg, endDeg) {
     const end = polarToCart(cx, cy, r, endDeg);
     const large = (endDeg - startDeg) > 180 ? 1 : 0;
     if (Math.abs(endDeg - startDeg) < 0.5) return '';
-    return \`M${start.x} ${start.y} A${r} ${r} 0 ${large} 1 ${end.x} ${end.y}\`;
+    return \`M\${start.x} \${start.y} A\${r} \${r} 0 \${large} 1 \${end.x} \${end.y}\`;
 }
 
 function polarToCart(cx, cy, r, deg) {
@@ -2450,7 +2450,7 @@ function drawRadial(W, H) {
         ctx2d.beginPath();
         ctx2d.moveTo(cos * r1, sin * r1);
         ctx2d.lineTo(cos * r2, sin * r2);
-        ctx2d.strokeStyle = \`hsla(${hue}, 85%, 55%, ${alpha})\`;
+        ctx2d.strokeStyle = \`hsla(\${hue}, 85%, 55%, \${alpha})\`;
         ctx2d.lineWidth = Math.max(1, val * 3);
         ctx2d.shadowBlur = val > 0.5 ? 8 : 0;
         ctx2d.shadowColor = '#1DB954';
@@ -2484,7 +2484,7 @@ function spawnParticle(W, H) {
         size: 1.5 + Math.random() * 2.5,
         alpha: 0.4 + Math.random() * 0.6,
         decay: 0.004 + Math.random() * 0.006,
-        c: \`rgba(29,185,84,${0.4 + Math.random() * 0.6})\`
+        c: \`rgba(29,185,84,\${0.4 + Math.random() * 0.6})\`
     };
 }
 
@@ -2515,7 +2515,7 @@ function drawParticles(W, H) {
             const distSq = dx * dx + dy * dy;
             if (distSq < 15000) {
                 const alpha = (1 - Math.sqrt(distSq) / 122) * 0.4;
-                ctx2d.strokeStyle = \`rgba(29, 185, 84, ${alpha})\`;
+                ctx2d.strokeStyle = \`rgba(29, 185, 84, \${alpha})\`;
                 ctx2d.beginPath();
                 ctx2d.moveTo(particles[i].x, particles[i].y);
                 ctx2d.lineTo(particles[j].x, particles[j].y);
