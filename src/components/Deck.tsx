@@ -20,21 +20,27 @@ export function Deck({
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "copy";
         setIsDragging(true);
     };
 
     const handleDragLeave = (e: React.DragEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         setIsDragging(false);
     };
 
     const handleDrop = async (e: React.DragEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         setIsDragging(false);
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const file = e.dataTransfer.files[0];
             if (file.type.startsWith("audio/")) {
                 await loadFile(file);
+            } else {
+                alert("Please drop a valid audio file (.mp3, .wav, etc).");
             }
         }
     };
