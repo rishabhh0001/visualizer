@@ -164,14 +164,28 @@ export function Deck({
                             className="absolute left-0 top-0 bottom-0 opacity-20 pointer-events-none"
                             style={{ width: `0%`, background: colorHex }}
                         />
+                        {/* Loop Visual Overlay */}
+                        {loopIn !== null && (
+                            <div 
+                                className={`absolute top-0 bottom-0 pointer-events-none border-l-2 shadow-[0_0_15px_rgba(251,191,36,0.5)] ${isLooping || loopOut === null ? 'bg-amber-400/30' : 'bg-amber-400/10'}`}
+                                style={{
+                                    left: `${(loopIn / duration) * 100}%`,
+                                    width: loopOut !== null ? `${((loopOut - loopIn) / duration) * 100}%` : `calc(100% - ${(loopIn / duration) * 100}%)`,
+                                    borderLeftColor: '#fbbf24',
+                                    borderRight: loopOut !== null ? '2px solid #fbbf24' : 'none',
+                                    transition: 'background-color 0.2s ease',
+                                    zIndex: 10
+                                }}
+                            />
+                        )}
                         {/* Progress line */}
                         <div
                             ref={progressLineRef}
-                            className="absolute top-0 bottom-0 w-0.5 shadow-[0_0_10px_rgba(255,255,255,0.5)] pointer-events-none"
+                            className="absolute top-0 bottom-0 w-0.5 shadow-[0_0_10px_rgba(255,255,255,0.5)] pointer-events-none z-20"
                             style={{ left: `0%`, background: colorHex }}
                         />
                         {/* Generic waveform bars for aesthetic */}
-                        <div className="flex items-center gap-[2px] w-full px-2 opacity-50 pointer-events-none">
+                        <div className="flex items-center gap-[2px] w-full px-2 opacity-50 pointer-events-none z-0">
                             {aestheticBars.map((height, i) => (
                                 <div key={i} className="flex-1 bg-white/40 rounded-full" style={{ height: `${height}%` }} />
                             ))}
