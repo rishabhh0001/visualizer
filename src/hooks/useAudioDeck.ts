@@ -39,7 +39,6 @@ export function useAudioDeck(audioContext: AudioContext | null) {
     const [file, setFile] = useState<File | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [duration, setDuration] = useState(0);
-    const [currentTime, setCurrentTime] = useState(0);
     const [volume, setVolume] = useState(1);
     const [pitch, setPitch] = useState(1);
     const [eq, setEq] = useState({ low: 0, mid: 0, high: 0 }); // -12 to +12 dB
@@ -93,11 +92,7 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         high.type = "highshelf";
         high.frequency.value = 3200;
 
-        // Stereo Widener (Mid-Side)
-        const widener = audioContext.createGain(); // For simplicity, using gain as placeholder for now, 
-        // will implement proper MS widener if needed, or just Pan.
-        // Actually let's use a StereoPanner for width-ish effect or a real MS matrix.
-        // For DJ use, a simple StereoPanner and Gain is often enough, but let's use a Panner.
+        const widener = audioContext.createGain();
         const panner = audioContext.createStereoPanner();
         panner.pan.value = 0;
 
@@ -216,7 +211,6 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         setBuffer(decoded);
         setBaseBpm(guessBPM(decoded));
         setDuration(decoded.duration);
-        setCurrentTime(0);
         pauseTimeRef.current = 0;
         setHotCues([null, null, null, null]);
         setLoopIn(null);
@@ -224,9 +218,15 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         setIsLooping(false);
     };
 
+    const getElapsed = () => {
+        if (!audioContext || !buffer) return 0;
+        if (!isPlaying) return pauseTimeRef.current;
+        return (audioContext.currentTime - startTimeRef.current) * pitch + pauseTimeRef.current;
+    };
+
     const updateProgress = () => {
         if (!isPlaying || !audioContext) return;
-        const elapsed = (audioContext.currentTime - startTimeRef.current) * pitch + pauseTimeRef.current;
+        const elapsed = getElapsed();
 
         // Handle looping
         if (isLooping && loopIn !== null && loopOut !== null && elapsed >= loopOut) {
@@ -238,7 +238,7 @@ export function useAudioDeck(audioContext: AudioContext | null) {
             stop();
             return;
         }
-        setCurrentTime(elapsed);
+
         reqFrameRef.current = requestAnimationFrame(updateProgress);
     };
 
@@ -281,7 +281,6 @@ export function useAudioDeck(audioContext: AudioContext | null) {
             sourceRef.current.disconnect();
         }
         setIsPlaying(false);
-        setCurrentTime(0);
         pauseTimeRef.current = 0;
         cancelAnimationFrame(reqFrameRef.current);
     };
@@ -295,7 +294,6 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         const wasPlaying = isPlaying;
         if (wasPlaying) pause();
         pauseTimeRef.current = time;
-        setCurrentTime(time);
         if (wasPlaying) play();
     };
 
@@ -304,7 +302,7 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         if (hotCues[index] === null) {
             // Set cue
             const newCues = [...hotCues];
-            newCues[index] = currentTime;
+            newCues[index] = getElapsed();
             setHotCues(newCues);
         } else {
             // Jump to cue
@@ -325,8 +323,9 @@ export function useAudioDeck(audioContext: AudioContext | null) {
             setIsLooping(!isLooping);
         } else if (loopIn !== null && loopOut === null) {
             // implicit out at current time
-            if (currentTime > loopIn) {
-                setLoopOut(currentTime);
+            const current = getElapsed();
+            if (current > loopIn) {
+                setLoopOut(current);
                 setIsLooping(true);
             }
         }
@@ -343,7 +342,7 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         file,
         buffer,
         isPlaying,
-        currentTime,
+        getElapsed,
         duration,
         volume,
         pitch,

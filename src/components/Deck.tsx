@@ -18,7 +18,7 @@ export function Deck({
     const [isDragging, setIsDragging] = useState(false);
 
     const {
-        file, isPlaying, currentTime, duration,
+        file, isPlaying, getElapsed, duration,
         togglePlayback, seek, loadFile, setPitch, pitch,
         baseBpm, loopIn, setLoopIn, loopOut, setLoopOut, isLooping, toggleLoop,
         hotCues, handleHotCue, clearHotCue
@@ -45,6 +45,26 @@ export function Deck({
         setIsDragging(false);
     };
 
+    const progressFillRef = useRef<HTMLDivElement>(null);
+    const progressLineRef = useRef<HTMLDivElement>(null);
+    const timeTextRef = useRef<HTMLSpanElement>(null);
+
+    useEffect(() => {
+        let reqId: number;
+        const updateUI = () => {
+            if (duration) {
+                const elapsed = getElapsed();
+                const progress = (elapsed / duration) * 100;
+                if (progressFillRef.current) progressFillRef.current.style.width = `${progress}%`;
+                if (progressLineRef.current) progressLineRef.current.style.left = `${progress}%`;
+                if (timeTextRef.current) timeTextRef.current.textContent = formatTime(elapsed);
+            }
+            reqId = requestAnimationFrame(updateUI);
+        };
+        reqId = requestAnimationFrame(updateUI);
+        return () => cancelAnimationFrame(reqId);
+    }, [duration, getElapsed]);
+
     const handleDrop = async (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -66,8 +86,8 @@ export function Deck({
         return `${m}:${s.toString().padStart(2, "0")}`;
     };
 
-    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-    const colorHex = colorClass === "emerald" ? "#10b981" : "#06b6d4";
+    // Calculate values mostly once
+    const colorHex = colorClass === "emerald" ? "#10b981" : "#0ea5e9";
 
     return (
         <div
@@ -89,14 +109,18 @@ export function Deck({
                     >
                         {deckName}
                     </div>
-                    <div>
+                    <div className="flex flex-col gap-1 w-full flex-1">
+                        <div className="flex justify-between items-end border-b border-white/10 pb-1 mb-1">
+                            <span className="text-[10px] font-bold text-white/50">{deckName}</span>
+                            <span ref={timeTextRef} className="text-xl font-mono font-bold tracking-tight text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">
+                                {formatTime(0)}
+                            </span>
+                            <span className="text-[10px] font-mono text-white/40 border border-white/10 px-1 rounded bg-black/20">
+                                {formatTime(duration)}
+                            </span>
+                        </div>
                         <div className="text-white font-medium text-sm truncate w-40">
                             {file ? file.name : "Drop Audio File Here"}
-                        </div>
-                        <div className="flex gap-2 text-white/40 text-xs font-mono mt-1">
-                            <span>{formatTime(currentTime)}</span>
-                            <span>/</span>
-                            <span>{formatTime(duration)}</span>
                         </div>
                     </div>
                 </div>
@@ -136,13 +160,15 @@ export function Deck({
                     <>
                         {/* Progress fill */}
                         <div
+                            ref={progressFillRef}
                             className="absolute left-0 top-0 bottom-0 opacity-20 pointer-events-none"
-                            style={{ width: `${progress}%`, background: colorHex }}
+                            style={{ width: `0%`, background: colorHex }}
                         />
                         {/* Progress line */}
                         <div
+                            ref={progressLineRef}
                             className="absolute top-0 bottom-0 w-0.5 shadow-[0_0_10px_rgba(255,255,255,0.5)] pointer-events-none"
-                            style={{ left: `${progress}%`, background: colorHex }}
+                            style={{ left: `0%`, background: colorHex }}
                         />
                         {/* Generic waveform bars for aesthetic */}
                         <div className="flex items-center gap-[2px] w-full px-2 opacity-50 pointer-events-none">
@@ -162,13 +188,13 @@ export function Deck({
                 <div className="flex bg-black/40 rounded-lg p-1 border border-white/10">
                     <button
                         className={`text-[9px] font-bold px-3 py-1.5 rounded transition-colors ${loopIn !== null && !isLooping ? 'bg-yellow-500/20 text-yellow-500' : 'text-white/40 hover:text-white'}`}
-                        onClick={() => { if (loopIn === null) setLoopIn(currentTime); else setLoopIn(null); }}
+                        onClick={() => { if (loopIn === null) setLoopIn(getElapsed()); else setLoopIn(null); }}
                     >
                         IN
                     </button>
                     <button
                         className={`text-[9px] font-bold px-3 py-1.5 rounded transition-colors ${loopOut !== null && !isLooping ? 'bg-yellow-500/20 text-yellow-500' : 'text-white/40 hover:text-white'}`}
-                        onClick={() => { if (loopIn !== null && loopOut === null) setLoopOut(currentTime); else setLoopOut(null); }}
+                        onClick={() => { if (loopIn !== null && loopOut === null) setLoopOut(getElapsed()); else setLoopOut(null); }}
                     >
                         OUT
                     </button>

@@ -12,6 +12,8 @@ import Link from "next/link";
 export default function RemixerPage() {
     const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
     const [crossfader, setCrossfader] = useState(0.5); // 0 = A, 1 = B
+    const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+    const [isAiLoading, setIsAiLoading] = useState(false);
 
     const deckA = useAudioDeck(audioContext);
     const deckB = useAudioDeck(audioContext);
@@ -47,14 +49,36 @@ export default function RemixerPage() {
         setCrossfader(parseFloat(e.target.value));
     };
 
-    // Sync B to A
     const handleSync = () => {
         if (deckA.buffer && deckB.buffer) {
             deckB.setPitch(deckA.pitch);
             if (deckA.isPlaying && !deckB.isPlaying) {
-                deckB.seek(deckA.currentTime);
+                deckB.seek(deckA.getElapsed());
                 deckB.togglePlayback();
             }
+        }
+    };
+
+    const handleAutomix = async () => {
+        if (!deckA.buffer && !deckB.buffer) return;
+        setIsAiLoading(true);
+        try {
+            const res = await fetch('/api/automix', {
+                method: 'POST',
+                body: JSON.stringify({
+                    trackA: { bpm: deckA.baseBpm * deckA.pitch, elapsed: deckA.getElapsed(), duration: deckA.duration || 1 },
+                    trackB: { bpm: deckB.baseBpm * deckB.pitch, elapsed: deckB.getElapsed(), duration: deckB.duration || 1 }
+                })
+            });
+            const data = await res.json();
+            if (data.suggestion) {
+                setAiSuggestion(data.suggestion);
+                setTimeout(() => setAiSuggestion(null), 15000);
+            }
+        } catch (e) {
+            console.error("AI Automix failed:", e);
+        } finally {
+            setIsAiLoading(false);
         }
     };
 
@@ -97,17 +121,32 @@ export default function RemixerPage() {
                     <div className="flex-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex flex-col items-center shadow-2xl relative overflow-hidden">
                         {/* Mixer Header */}
                         <div className="w-full flex justify-between items-center mb-6">
-                            <button
-                                onClick={handleSync}
-                                className="text-[10px] font-bold px-3 py-1.5 rounded border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 hover:text-white transition-all text-white/60"
-                            >
-                                SYNC B TO A
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleSync}
+                                    className="px-3 py-1.5 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-black border border-emerald-500/50 rounded text-xs font-bold transition-all"
+                                >
+                                    SYNC
+                                </button>
+                                <button
+                                    onClick={handleAutomix}
+                                    disabled={isAiLoading}
+                                    className={`px-3 py-1.5 flex items-center gap-1.5 ${isAiLoading ? 'bg-purple-500/30' : 'bg-purple-500/10 hover:bg-purple-500 hover:text-black'} text-purple-400 border border-purple-500/50 rounded text-xs font-bold transition-all`}
+                                >
+                                    {isAiLoading ? <span className="animate-spin text-sm">↻</span> : <span className="text-sm">✨</span>}
+                                    {isAiLoading ? 'THINKING' : 'AI COPILOT'}
+                                </button>
+                            </div>
                             <h3 className="text-white/40 text-xs font-bold tracking-widest flex items-center gap-2">
                                 MIXER <SlidersHorizontal className="w-3 h-3" />
                             </h3>
                         </div>
 
+                        {aiSuggestion && (
+                            <div className="w-full mb-6 p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg text-[10px] text-purple-300 font-mono tracking-wide leading-relaxed animate-[fadeIn_0.5s_ease-out]">
+                                <span className="font-bold text-purple-400">DJ ASSISTANT:</span> {aiSuggestion}
+                            </div>
+                        )}
                         {/* EQ Section */}
                         <div className="flex justify-between gap-4 flex-1 w-full px-2">
                             {/* Channel A EQ */}

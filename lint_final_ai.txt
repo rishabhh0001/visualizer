@@ -1,0 +1,42 @@
+
+C:\Users\risha\visualizer\src\app\api\automix\route.ts
+  39:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\risha\visualizer\src\components\Deck.tsx
+   1:1   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')
+  60:76  error    Error: Cannot access variable before it is declared
+
+`formatTime` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\risha\visualizer\src\components\Deck.tsx:60:76
+  58 |                 if (progressFillRef.current) progressFillRef.current.style.width = `${progress}%`;
+  59 |                 if (progressLineRef.current) progressLineRef.current.style.left = `${progress}%`;
+> 60 |                 if (timeTextRef.current) timeTextRef.current.textContent = formatTime(elapsed);
+     |                                                                            ^^^^^^^^^^ `formatTime` accessed before it is declared
+  61 |             }
+  62 |             reqId = requestAnimationFrame(updateUI);
+  63 |         };
+
+C:\Users\risha\visualizer\src\components\Deck.tsx:83:5
+  81 |     };
+  82 |
+> 83 |     const formatTime = (secs: number) => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 84 |         const m = Math.floor(secs / 60);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 85 |         const s = Math.floor(secs % 60);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 86 |         return `${m}:${s.toString().padStart(2, "0")}`;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 87 |     };
+     | ^^^^^^^ `formatTime` is declared here
+  88 |
+  89 |     // Calculate values mostly once
+  90 |     const colorHex = colorClass === "emerald" ? "#10b981" : "#0ea5e9";  react-hooks/immutability
+
+C:\Users\risha\visualizer\src\hooks\useAudioDeck.ts
+  95:15  warning  'widener' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 4 problems (2 errors, 2 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+
