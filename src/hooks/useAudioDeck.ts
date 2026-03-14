@@ -218,6 +218,19 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         setIsLooping(false);
     };
 
+    const unloadFile = () => {
+        stop();
+        setFile(null);
+        setBuffer(null);
+        setDuration(0);
+        setBaseBpm(120);
+        pauseTimeRef.current = 0;
+        setHotCues([null, null, null, null]);
+        setLoopIn(null);
+        setLoopOut(null);
+        setIsLooping(false);
+    };
+
     const getElapsed = () => {
         if (!audioContext || !buffer) return 0;
         if (!isPlaying) return pauseTimeRef.current;
@@ -350,6 +363,7 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         fx,
         baseBpm,
         loadFile,
+        unloadFile,
         togglePlayback,
         stop,
         seek,

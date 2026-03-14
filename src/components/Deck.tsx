@@ -19,7 +19,7 @@ export function Deck({
 
     const {
         file, isPlaying, getElapsed, duration,
-        togglePlayback, seek, loadFile, setPitch, pitch,
+        togglePlayback, seek, loadFile, unloadFile, setPitch, pitch,
         baseBpm, loopIn, setLoopIn, loopOut, setLoopOut, isLooping, toggleLoop,
         hotCues, handleHotCue, clearHotCue
     } = audioState;
@@ -133,6 +133,16 @@ export function Deck({
                 >
                     Browse
                 </button>
+                {file && (
+                    <button
+                        onClick={() => { unloadFile?.(); }}
+                        title="Eject / Unload track"
+                        className="text-[10px] bg-red-500/10 hover:bg-red-500/80 border border-red-500/40 rounded px-2 py-1 text-red-400 hover:text-white transition-all uppercase font-bold tracking-wider ml-1 flex items-center gap-1"
+                    >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M5 20h14v-2H5v2zm7-18L5.33 13h13.34L12 2z"/></svg>
+                        Eject
+                    </button>
+                )}
                 <input
                     type="file"
                     ref={fileInputRef}

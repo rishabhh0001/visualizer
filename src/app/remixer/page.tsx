@@ -68,11 +68,11 @@ export default function RemixerPage() {
                 body: JSON.stringify({
                     crossfader,
                     trackA: { 
-                        isPlaying: deckA.isPlaying, volume: deckA.volume, eq: deckA.eq, fx: deckA.fx, 
+                        isPlaying: deckA.isPlaying, volume: deckA.volume, pitch: deckA.pitch, eq: deckA.eq, fx: deckA.fx, 
                         bpm: deckA.baseBpm * deckA.pitch, elapsed: deckA.getElapsed(), duration: deckA.duration || 1 
                     },
                     trackB: { 
-                        isPlaying: deckB.isPlaying, volume: deckB.volume, eq: deckB.eq, fx: deckB.fx,
+                        isPlaying: deckB.isPlaying, volume: deckB.volume, pitch: deckB.pitch, eq: deckB.eq, fx: deckB.fx,
                         bpm: deckB.baseBpm * deckB.pitch, elapsed: deckB.getElapsed(), duration: deckB.duration || 1 
                     }
                 })
@@ -81,7 +81,7 @@ export default function RemixerPage() {
             
             if (data.suggestion) {
                 setAiSuggestion(data.suggestion);
-                setTimeout(() => setAiSuggestion(null), 15000);
+                // Suggestion will be cleared after the animation completes (see animateMixer below)
             }
 
             // Execute automated actions if present
@@ -91,6 +91,11 @@ export default function RemixerPage() {
                 // Handle Sync Instantly
                 if (action.sync && deckA.buffer && deckB.buffer) {
                     deckB.setPitch(deckA.pitch);
+                }
+
+                // Seek Deck B to the ideal beat-aligned position if AI requests it
+                if (action.seekB !== undefined && deckB.seek) {
+                    deckB.seek(action.seekB);
                 }
 
                 // Handle Playback Instantly
@@ -111,15 +116,19 @@ export default function RemixerPage() {
                 const startCrossfader = crossfader;
                 const startVolA = deckA.volume;
                 const startVolB = deckB.volume;
+                const startPitchA = deckA.pitch;
+                const startPitchB = deckB.pitch;
                 const startEqA = { ...deckA.eq };
                 const startEqB = { ...deckB.eq };
                 const startFxA = { ...deckA.fx };
                 const startFxB = { ...deckB.fx };
 
-                // Get target states (or fallback to initial stat if not provided)
+                // Get target states
                 const targetCrossfader = action.crossfader !== undefined ? Math.max(0, Math.min(1, action.crossfader)) : startCrossfader;
                 const targetVolA = action.volA !== undefined ? Math.max(0, Math.min(1, action.volA)) : startVolA;
                 const targetVolB = action.volB !== undefined ? Math.max(0, Math.min(1, action.volB)) : startVolB;
+                const targetPitchA = action.pitchA !== undefined ? Math.max(0.5, Math.min(2.0, action.pitchA)) : startPitchA;
+                const targetPitchB = action.pitchB !== undefined ? Math.max(0.5, Math.min(2.0, action.pitchB)) : startPitchB;
                 const targetEqA = { ...startEqA, ...action.eqA };
                 const targetEqB = { ...startEqB, ...action.eqB };
                 const targetFxA = { ...startFxA, ...action.fxA };
@@ -141,6 +150,8 @@ export default function RemixerPage() {
                     if (action.crossfader !== undefined) setCrossfader(lerp(startCrossfader, targetCrossfader));
                     if (action.volA !== undefined) deckA.setVolume(lerp(startVolA, targetVolA));
                     if (action.volB !== undefined) deckB.setVolume(lerp(startVolB, targetVolB));
+                    if (action.pitchA !== undefined) deckA.setPitch(lerp(startPitchA, targetPitchA));
+                    if (action.pitchB !== undefined) deckB.setPitch(lerp(startPitchB, targetPitchB));
                     
                     if (action.eqA) deckA.setEq({
                         high: lerp((startEqA as any).high, targetEqA.high),
@@ -172,6 +183,9 @@ export default function RemixerPage() {
 
                     if (progress < 1) {
                         requestAnimationFrame(animateMixer);
+                    } else {
+                        // Crossfade complete — clear the AI suggestion display
+                        setAiSuggestion(null);
                     }
                 };
                 requestAnimationFrame(animateMixer);
@@ -181,6 +195,32 @@ export default function RemixerPage() {
         } finally {
             setIsAiLoading(false);
         }
+    };
+
+    const [trackLibrary, setTrackLibrary] = useState<File[]>([]);
+    const libraryInputRef = useRef<HTMLInputElement>(null);
+
+    const handleLibraryDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("audio/"));
+            setTrackLibrary(prev => [...prev, ...files]);
+        }
+    };
+
+    const handleLibraryDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "copy";
+    };
+
+    const formatBytes = (bytes: number) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     };
 
     return (
@@ -475,48 +515,90 @@ export default function RemixerPage() {
             </div>
 
             {/* Track Library / Bottom Panel */}
-            <div className="h-32 md:h-40 lg:h-48 bg-white/5 backdrop-blur border border-white/10 rounded-xl shrink-0 flex flex-col overflow-hidden z-10">
-                <div className="h-8 md:h-10 border-b border-white/10 bg-black/40 flex items-center px-4 text-[9px] md:text-[10px] font-bold text-white/40 tracking-widest font-mono">
-                    <div className="w-12 text-center">DECK</div>
-                    <div className="flex-1">TITLE</div>
-                    <div className="w-32">DURATION</div>
-                    <div className="w-32 text-right">STATUS</div>
+            <div 
+                className="h-48 md:h-56 lg:h-64 bg-white/5 backdrop-blur border border-white/10 rounded-xl shrink-0 flex flex-col overflow-hidden z-10"
+                onDrop={handleLibraryDrop}
+                onDragOver={handleLibraryDragOver}
+            >
+                <div className="h-10 md:h-12 border-b border-white/10 bg-black/40 flex items-center px-4 justify-between shrink-0">
+                    <div className="flex text-[10px] md:text-xs font-bold text-white/40 tracking-widest font-mono">
+                        GLOBAL TRACK LIBRARY
+                    </div>
+                    <div>
+                        <button
+                            onClick={() => {
+                                initAudio();
+                                libraryInputRef.current?.click();
+                            }}
+                            className="text-[10px] bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded uppercase font-bold tracking-widest transition-colors flex items-center gap-2"
+                        >
+                            + ADD TRACKS
+                        </button>
+                        <input
+                            type="file"
+                            ref={libraryInputRef}
+                            className="hidden"
+                            accept="audio/*"
+                            multiple
+                            onChange={(e) => {
+                                if (e.target.files) {
+                                    const files = Array.from(e.target.files).filter(f => f.type.startsWith("audio/"));
+                                    setTrackLibrary(prev => [...prev, ...files]);
+                                }
+                            }}
+                        />
+                    </div>
                 </div>
 
-                <div className="flex-1 flex flex-col">
-                    {deckA.file ? (
-                        <div className="flex items-center px-4 py-3 border-b border-white/5 hover:bg-white/5 text-sm group">
-                            <div className="w-12 text-center font-bold text-emerald-500 text-xs bg-emerald-500/10 py-1 rounded w-8 mx-auto -ml-2 border border-emerald-500/20">A</div>
-                            <div className="flex-1 font-medium pl-6">{deckA.file.name}</div>
-                            <div className="w-32 text-white/40 font-mono text-xs">{(deckA.duration / 60).toFixed(1)} mins</div>
-                            <div className="w-32 text-right">
-                                <span className={`text-[10px] px-2 py-0.5 border rounded-full font-bold tracking-widest ${deckA.isPlaying ? 'border-emerald-500 text-emerald-500 bg-emerald-500/10' : 'border-white/20 text-white/50'}`}>
-                                    {deckA.isPlaying ? "PLAYING" : "LOADED"}
-                                </span>
-                            </div>
-                        </div>
-                    ) : null}
-
-                    {deckB.file ? (
-                        <div className="flex items-center px-4 py-3 border-b border-white/5 hover:bg-white/5 text-sm group">
-                            <div className="w-12 text-center font-bold text-cyan-500 text-xs bg-cyan-500/10 py-1 rounded w-8 mx-auto -ml-2 border border-cyan-500/20">B</div>
-                            <div className="flex-1 font-medium pl-6">{deckB.file.name}</div>
-                            <div className="w-32 text-white/40 font-mono text-xs">{(deckB.duration / 60).toFixed(1)} mins</div>
-                            <div className="w-32 text-right">
-                                <span className={`text-[10px] px-2 py-0.5 border rounded-full font-bold tracking-widest ${deckB.isPlaying ? 'border-cyan-500 text-cyan-500 bg-cyan-500/10' : 'border-white/20 text-white/50'}`}>
-                                    {deckB.isPlaying ? "PLAYING" : "LOADED"}
-                                </span>
-                            </div>
-                        </div>
-                    ) : null}
-
-                    {!deckA.file && !deckB.file && (
-                        <div className="flex-1 flex flex-col items-center justify-center text-white/30 text-xs font-mono tracking-widest">
-                            <div className="w-12 h-12 rounded-full border border-dashed border-white/20 flex items-center justify-center mb-4">
+                <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+                    {trackLibrary.length === 0 ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-white/30 text-xs font-mono tracking-widest opacity-50">
+                            <div className="w-16 h-16 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center mb-4">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
                             </div>
-                            DRAG & DROP AUDIO FILES DIRECTLY ONTO DECK A OR DECK B
+                            DRAG & DROP MULTIPLE AUDIO FILES HERE TO BUILD YOUR LIBRARY
                         </div>
+                    ) : (
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="text-[10px] text-white/30 bg-black/20 font-mono tracking-widest border-b border-white/5">
+                                    <th className="py-2 pl-4 w-12 text-center">#</th>
+                                    <th className="py-2">TITLE</th>
+                                    <th className="py-2 w-32">SIZE</th>
+                                    <th className="py-2 w-48 text-right pr-4">ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {trackLibrary.map((file, i) => (
+                                    <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                                        <td className="py-3 pl-4 text-center font-mono text-xs text-white/50">{i + 1}</td>
+                                        <td className="py-3 font-medium text-sm flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-white/50 shrink-0">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                                            </div>
+                                            <span className="truncate max-w-xs md:max-w-md">{file.name}</span>
+                                        </td>
+                                        <td className="py-3 font-mono text-xs text-white/40">{formatBytes(file.size)}</td>
+                                        <td className="py-3 text-right pr-4">
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => { initAudio(); deckA.loadFile(file); }}
+                                                    className="px-3 py-1 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-black border border-emerald-500/50 rounded text-[10px] font-bold tracking-widest transition-all"
+                                                >
+                                                    LOAD TO A
+                                                </button>
+                                                <button
+                                                    onClick={() => { initAudio(); deckB.loadFile(file); }}
+                                                    className="px-3 py-1 bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500 hover:text-black border border-cyan-500/50 rounded text-[10px] font-bold tracking-widest transition-all"
+                                                >
+                                                    LOAD TO B
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     )}
                 </div>
             </div>
