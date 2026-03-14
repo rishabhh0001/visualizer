@@ -209,43 +209,156 @@ export function Deck({
             {/* Loop & Hot Cues Row */}
             <div className="flex justify-between items-center gap-4">
                 {/* Loop Controls */}
-                <div className="flex bg-black/40 rounded-lg p-1 border border-white/10">
-                    <button
-                        className={`text-[9px] font-bold px-3 py-1.5 rounded transition-colors ${loopIn !== null && !isLooping ? 'bg-yellow-500/20 text-yellow-500' : 'text-white/40 hover:text-white'}`}
-                        onClick={() => { if (loopIn === null) setLoopIn(getElapsed()); else setLoopIn(null); }}
-                    >
-                        IN
-                    </button>
-                    <button
-                        className={`text-[9px] font-bold px-3 py-1.5 rounded transition-colors ${loopOut !== null && !isLooping ? 'bg-yellow-500/20 text-yellow-500' : 'text-white/40 hover:text-white'}`}
-                        onClick={() => { if (loopIn !== null && loopOut === null) setLoopOut(getElapsed()); else setLoopOut(null); }}
-                    >
-                        OUT
-                    </button>
-                    <button
-                        className={`text-[9px] font-bold px-3 py-1.5 rounded transition-colors ${isLooping ? 'bg-yellow-500 text-black shadow-[0_0_10px_#eab308]' : 'text-white/40 hover:text-white'}`}
-                        onClick={toggleLoop}
-                    >
-                        RELOOP
-                    </button>
+                <div className="flex flex-col gap-1">
+                    <div className="flex bg-black/50 rounded-lg p-1 border border-white/10 gap-0.5">
+                        {/* IN button — sets loop start at current playhead */}
+                        <button
+                            title="Set Loop IN point at current position"
+                            className={`text-[9px] font-bold px-3 py-1.5 rounded transition-all ${
+                                loopIn !== null
+                                    ? 'bg-amber-500 text-black shadow-[0_0_8px_#f59e0b]'
+                                    : 'text-white/50 hover:bg-white/10 hover:text-white'
+                            }`}
+                            onClick={() => {
+                                if (!file) return;
+                                if (loopIn === null) {
+                                    setLoopIn(getElapsed());
+                                } else {
+                                    // Re-press: reset IN point
+                                    setLoopIn(null);
+                                    setLoopOut(null);
+                                }
+                            }}
+                        >
+                            {loopIn !== null ? `IN ${loopIn.toFixed(1)}s` : 'IN'}
+                        </button>
+
+                        {/* OUT button — sets loop end at current playhead, only valid after IN */}
+                        <button
+                            title={loopIn === null ? 'Set IN point first' : 'Set Loop OUT point at current position'}
+                            disabled={loopIn === null}
+                            className={`text-[9px] font-bold px-3 py-1.5 rounded transition-all disabled:opacity-30 ${
+                                loopOut !== null
+                                    ? 'bg-amber-400 text-black shadow-[0_0_8px_#fbbf24]'
+                                    : loopIn !== null
+                                    ? 'text-amber-300 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20'
+                                    : 'text-white/50 hover:bg-white/10 hover:text-white'
+                            }`}
+                            onClick={() => {
+                                if (loopIn === null) return;
+                                if (loopOut === null) {
+                                    const out = getElapsed();
+                                    if (out > loopIn + 0.05) setLoopOut(out);
+                                } else {
+                                    setLoopOut(null);
+                                }
+                            }}
+                        >
+                            {loopOut !== null ? `OUT ${loopOut.toFixed(1)}s` : 'OUT'}
+                        </button>
+
+                        {/* RELOOP — jumps back to IN and toggles loop active state */}
+                        <button
+                            title={
+                                loopIn === null ? 'Set IN/OUT points first' :
+                                isLooping ? 'Exit loop' : 'Jump to IN and loop'
+                            }
+                            disabled={loopIn === null || loopOut === null}
+                            className={`text-[9px] font-bold px-3 py-1.5 rounded transition-all disabled:opacity-30 ${
+                                isLooping
+                                    ? 'bg-amber-500 text-black shadow-[0_0_12px_#f59e0b] animate-[pulse_2s_ease-in-out_infinite]'
+                                    : loopIn !== null && loopOut !== null
+                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/40'
+                                    : 'text-white/50 hover:bg-white/10 hover:text-white'
+                            }`}
+                            onClick={() => {
+                                if (loopIn !== null && loopOut !== null) {
+                                    if (!isLooping) {
+                                        // Jump to loop start and activate
+                                        seek(loopIn);
+                                        if (!isPlaying) togglePlayback();
+                                    }
+                                    toggleLoop();
+                                }
+                            }}
+                        >
+                            {isLooping ? '⟳ LOOP' : 'RELOOP'}
+                        </button>
+                    </div>
+                    {/* Loop state label */}
+                    <div className="text-[8px] font-mono text-white/30 pl-1">
+                        {!loopIn ? 'No loop set' : !loopOut ? `IN: ${loopIn.toFixed(1)}s — waiting for OUT` : isLooping ? `LOOPING ${loopIn.toFixed(1)}s → ${loopOut.toFixed(1)}s` : `Loop ready (${(loopOut - loopIn).toFixed(1)}s)`}
+                    </div>
                 </div>
 
                 {/* Hot Cues */}
-                <div className="flex gap-2">
-                    {hotCues.map((cue: number | null, i: number) => (
-                        <button
-                            key={i}
-                            className={`w-10 h-8 rounded border transition-all relative group ${cue !== null ? `bg-${colorClass}-500/20 border-${colorClass}-500/50 shadow-[0_0_8px_rgba(${colorClass === 'emerald' ? '16,185,129' : '6,182,212'},0.4)]` : 'bg-black/50 border-white/5 hover:bg-white/5'}`}
-                            onClick={() => handleHotCue(i)}
-                            onContextMenu={(e) => { e.preventDefault(); clearHotCue(i); }}
-                        >
-                            <span className={`text-[8px] font-bold absolute bottom-1 right-1 ${cue !== null ? `text-${colorClass}-400` : 'text-white/20'}`}>{i + 1}</span>
-                        </button>
-                    ))}
+                <div className="flex flex-col gap-1 items-end">
+                    <div className="text-[8px] font-mono text-white/30">HOT CUES (right-click to clear)</div>
+                    <div className="flex gap-2">
+                        {hotCues.map((cue: number | null, i: number) => (
+                            <button
+                                key={i}
+                                className={`w-10 h-8 rounded border transition-all relative group ${cue !== null ? `bg-${colorClass}-500/20 border-${colorClass}-500/50 shadow-[0_0_8px_rgba(${colorClass === 'emerald' ? '16,185,129' : '6,182,212'},0.4)]` : 'bg-black/50 border-white/5 hover:bg-white/5'}`}
+                                onClick={() => handleHotCue(i)}
+                                onContextMenu={(e) => { e.preventDefault(); clearHotCue(i); }}
+                                title={cue !== null ? `Jump to ${cue.toFixed(1)}s` : `Set cue ${i + 1}`}
+                            >
+                                {cue !== null && (
+                                    <span className={`text-[7px] font-mono absolute top-1 left-1 text-${colorClass}-400/60`}>{cue.toFixed(0)}s</span>
+                                )}
+                                <span className={`text-[8px] font-bold absolute bottom-1 right-1 ${cue !== null ? `text-${colorClass}-400` : 'text-white/20'}`}>{i + 1}</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            {/* Controls */}
+            {/* FX Sliders Panel */}
+            <div className="bg-black/40 rounded-xl border border-white/5 p-3 flex flex-col gap-2">
+                <div className="text-[9px] font-bold text-white/30 tracking-widest uppercase mb-1">Effects</div>
+                {[
+                    { label: 'Delay Time', key: 'delayTime', min: 0, max: 1, step: 0.01, color: colorHex },
+                    { label: 'Delay Fbk', key: 'delayFeedback', min: 0, max: 0.9, step: 0.01, color: colorHex },
+                    { label: 'Reverb', key: 'reverbMix', min: 0, max: 0.8, step: 0.01, color: colorHex },
+                    { label: 'Width', key: 'width', min: 0.5, max: 2.0, step: 0.01, color: colorHex },
+                    { label: 'Compression', key: 'compression', min: -60, max: 0, step: 1, color: colorHex },
+                ].map(({ label, key, min, max, step, color }) => {
+                    const value = (audioState.fx as any)[key];
+                    const pct = ((value - min) / (max - min)) * 100;
+                    return (
+                        <div key={key} className="flex items-center gap-2">
+                            <span className="text-[8px] font-mono text-white/40 w-20 shrink-0">{label}</span>
+                            <div className="relative flex-1 h-3 flex items-center group">
+                                {/* Track BG */}
+                                <div className="absolute w-full h-1 bg-white/10 rounded-full" />
+                                {/* Fill */}
+                                <div
+                                    className="absolute h-1 rounded-full transition-none"
+                                    style={{ width: `${pct}%`, background: color, opacity: 0.7 }}
+                                />
+                                <input
+                                    type="range"
+                                    min={min} max={max} step={step}
+                                    value={value}
+                                    onChange={(e) => audioState.setFx({ ...audioState.fx, [key]: parseFloat(e.target.value) })}
+                                    className="absolute w-full opacity-0 cursor-pointer h-3"
+                                    style={{ accentColor: color }}
+                                />
+                                {/* Custom Thumb */}
+                                <div
+                                    className="absolute w-3 h-3 rounded-full border-2 pointer-events-none shadow-lg"
+                                    style={{ left: `calc(${pct}% - 6px)`, background: color, borderColor: 'rgba(0,0,0,0.5)', boxShadow: `0 0 6px ${color}` }}
+                                />
+                            </div>
+                            <span className="text-[8px] font-mono text-white/30 w-10 text-right shrink-0">
+                                {key === 'compression' ? `${value}dB` : key === 'width' ? `${value.toFixed(1)}x` : `${Math.round(pct)}%`}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Transport Controls + Pitch */}
             <div className="flex items-center gap-2 md:gap-4 mt-1 md:mt-2">
                 <button
                     onClick={() => seek(0)}

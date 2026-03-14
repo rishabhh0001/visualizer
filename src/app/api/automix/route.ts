@@ -20,22 +20,23 @@ Analyze the track phrasing based on percentage position (0-10% Intro, 40-60% Dro
 Return a punchy, creative mixing instruction and output the TARGET STATE of the mixer to perform a seamless 2.5 second transition.
 
 CRITICAL RULES:
-1. When transitioning from A to B, crossfader MUST be 1.0 at the end. When transitioning from B to A, crossfader MUST be 0.0.
-2. DO NOT leave the crossfader in the middle. ALWAYS cut off the outgoing track completely.
-3. ALWAYS set "sync": true when mixing tracks together to ensure perfect beatmatching.
-4. BEAT TIMING: Consider the current position of both tracks. Choose the ideal moment to begin the transition. If Track B is at an awkward moment (e.g., middle of a phrase), include a "seekB" value in seconds to the nearest phrase boundary or beat drop (e.g., the start of a break or chorus) to snap to the perfect position before mixing in. Only include seekB if it meaningfully improves the mix.
+1. TOTAL CUT-OFF: When transitioning to a track, the "crossfader" value must be EXACTLY 0.0 (Deck A) or 1.0 (Deck B) at the end. DO NOT stop midway.
+2. ALWAYS set "sync": true for beatmatching.
+3. BEAT TIMING: If Track B is mid-phrase, include a "seekB" value to the nearest phrase boundary.
+4. DURATION: Choose how many seconds the transition should take (standard is 2.5s, longer/shorter for effect).
 
 You MUST return ONLY a valid JSON object with no markdown formatting or backticks.
 The JSON must follow this exact format:
 {
   "suggestion": "e.g. 'Track A ending — sought B to drop, pitched up, synced and fading over'",
   "action": {
-    "crossfader": 0.5,
+    "crossfader": 1.0,  // MUST BE 0.0 or 1.0 for a complete transition
+    "duration": 2.5,    // duration of crossfade in seconds
     "sync": true,
     "seekB": 64.0,
     "playA": true,
     "playB": true,
-    "volA": 1.0, "volB": 0.8,
+    "volA": 1.0, "volB": 1.0,
     "pitchA": 1.0,
     "pitchB": 1.05,
     "eqA": { "high": 0, "mid": 0, "low": -12 },

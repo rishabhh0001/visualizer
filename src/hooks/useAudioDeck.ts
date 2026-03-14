@@ -199,6 +199,15 @@ export function useAudioDeck(audioContext: AudioContext | null) {
     const [loopOut, setLoopOut] = useState<number | null>(null);
     const [isLooping, setIsLooping] = useState(false);
 
+    // Refs for use inside rAF closure (avoid stale state)
+    const loopInRef = useRef<number | null>(null);
+    const loopOutRef = useRef<number | null>(null);
+    const isLoopingRef = useRef(false);
+
+    const setLoopInSynced = (v: number | null) => { loopInRef.current = v; setLoopIn(v); };
+    const setLoopOutSynced = (v: number | null) => { loopOutRef.current = v; setLoopOut(v); };
+    const setIsLoopingSynced = (v: boolean) => { isLoopingRef.current = v; setIsLooping(v); };
+
     const [hotCues, setHotCues] = useState<(number | null)[]>([null, null, null, null]);
 
     // Load and decode file
@@ -213,11 +222,10 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         setDuration(decoded.duration);
         pauseTimeRef.current = 0;
         setHotCues([null, null, null, null]);
-        setLoopIn(null);
-        setLoopOut(null);
-        setIsLooping(false);
+        setLoopInSynced(null);
+        setLoopOutSynced(null);
+        setIsLoopingSynced(false);
     };
-
     const unloadFile = () => {
         stop();
         setFile(null);
@@ -226,11 +234,10 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         setBaseBpm(120);
         pauseTimeRef.current = 0;
         setHotCues([null, null, null, null]);
-        setLoopIn(null);
-        setLoopOut(null);
-        setIsLooping(false);
+        setLoopInSynced(null);
+        setLoopOutSynced(null);
+        setIsLoopingSynced(false);
     };
-
     const getElapsed = () => {
         if (!audioContext || !buffer) return 0;
         if (!isPlaying) return pauseTimeRef.current;
@@ -241,9 +248,9 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         if (!isPlaying || !audioContext) return;
         const elapsed = getElapsed();
 
-        // Handle looping
-        if (isLooping && loopIn !== null && loopOut !== null && elapsed >= loopOut) {
-            seek(loopIn);
+        // Handle looping — use refs to avoid stale closure
+        if (isLoopingRef.current && loopInRef.current !== null && loopOutRef.current !== null && elapsed >= loopOutRef.current) {
+            seek(loopInRef.current);
             return;
         }
 
@@ -333,13 +340,13 @@ export function useAudioDeck(audioContext: AudioContext | null) {
     // Loop logic
     const toggleLoop = () => {
         if (loopIn !== null && loopOut !== null) {
-            setIsLooping(!isLooping);
+            setIsLoopingSynced(!isLooping);
         } else if (loopIn !== null && loopOut === null) {
             // implicit out at current time
             const current = getElapsed();
             if (current > loopIn) {
-                setLoopOut(current);
-                setIsLooping(true);
+                setLoopOutSynced(current);
+                setIsLoopingSynced(true);
             }
         }
     };
@@ -376,9 +383,9 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         handleHotCue,
         clearHotCue,
         loopIn,
-        setLoopIn,
+        setLoopIn: setLoopInSynced,
         loopOut,
-        setLoopOut,
+        setLoopOut: setLoopOutSynced,
         isLooping,
         toggleLoop
     };

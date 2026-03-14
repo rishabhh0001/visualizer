@@ -108,8 +108,8 @@ export default function RemixerPage() {
                     if (!action.playB && deckB.isPlaying) deckB.togglePlayback();
                 }
 
-                // Animate Unified Controls Smoothly over 2.5 seconds
-                const durationMs = 2500;
+                // Animate Unified Controls Smoothly
+                const durationMs = (action.duration || 2.5) * 1000;
                 const startTime = performance.now();
                 
                 // Snapshot initial states
@@ -166,7 +166,7 @@ export default function RemixerPage() {
                     });
 
                     if (action.fxA) deckA.setFx({
-                        delayTime: startFxA.delayTime,
+                        delayTime: lerp(startFxA.delayTime, targetFxA.delayTime),
                         delayFeedback: lerp(startFxA.delayFeedback, targetFxA.delayFeedback),
                         reverbMix: lerp(startFxA.reverbMix, targetFxA.reverbMix),
                         width: lerp(startFxA.width, targetFxA.width),
@@ -174,7 +174,7 @@ export default function RemixerPage() {
                     });
 
                     if (action.fxB) deckB.setFx({
-                        delayTime: startFxB.delayTime,
+                        delayTime: lerp(startFxB.delayTime, targetFxB.delayTime),
                         delayFeedback: lerp(startFxB.delayFeedback, targetFxB.delayFeedback),
                         reverbMix: lerp(startFxB.reverbMix, targetFxB.reverbMix),
                         width: lerp(startFxB.width, targetFxB.width),
@@ -184,8 +184,17 @@ export default function RemixerPage() {
                     if (progress < 1) {
                         requestAnimationFrame(animateMixer);
                     } else {
-                        // Crossfade complete — clear the AI suggestion display
-                        setAiSuggestion(null);
+                        // FORCE final target values at end to ensure total cut-off
+                        if (action.crossfader !== undefined) setCrossfader(targetCrossfader);
+                        if (action.volA !== undefined) deckA.setVolume(targetVolA);
+                        if (action.volB !== undefined) deckB.setVolume(targetVolB);
+                        if (action.pitchA !== undefined) deckA.setPitch(targetPitchA);
+                        if (action.pitchB !== undefined) deckB.setPitch(targetPitchB);
+                        
+                        // Crossfade complete — wait a bit before clearing the AI suggestion
+                        setTimeout(() => {
+                            setAiSuggestion(null);
+                        }, 800);
                     }
                 };
                 requestAnimationFrame(animateMixer);
@@ -198,7 +207,12 @@ export default function RemixerPage() {
     };
 
     const [trackLibrary, setTrackLibrary] = useState<File[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
     const libraryInputRef = useRef<HTMLInputElement>(null);
+
+    const filteredTracks = trackLibrary.filter(file => 
+        file.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const handleLibraryDrop = (e: React.DragEvent) => {
         e.preventDefault();
@@ -520,9 +534,31 @@ export default function RemixerPage() {
                 onDrop={handleLibraryDrop}
                 onDragOver={handleLibraryDragOver}
             >
-                <div className="h-10 md:h-12 border-b border-white/10 bg-black/40 flex items-center px-4 justify-between shrink-0">
-                    <div className="flex text-[10px] md:text-xs font-bold text-white/40 tracking-widest font-mono">
+                <div className="h-12 md:h-14 border-b border-white/10 bg-black/40 flex items-center px-4 gap-4 justify-between shrink-0">
+                    <div className="flex text-[10px] md:text-xs font-bold text-white/40 tracking-widest font-mono shrink-0">
                         GLOBAL TRACK LIBRARY
+                    </div>
+
+                    {/* Beautiful Search Bar */}
+                    <div className="flex-1 max-w-md relative group">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-white/20 group-focus-within:text-emerald-500 transition-colors">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                        </div>
+                        <input 
+                            type="text"
+                            placeholder="Search your tracks..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-full py-1.5 pl-10 pr-4 text-xs font-medium placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 focus:bg-white/10 focus:ring-4 focus:ring-emerald-500/5 transition-all"
+                        />
+                        {searchQuery && (
+                            <button 
+                                onClick={() => setSearchQuery("")}
+                                className="absolute inset-y-0 right-3 flex items-center text-white/20 hover:text-white transition-colors"
+                            >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                            </button>
+                        )}
                     </div>
                     <div>
                         <button
@@ -569,11 +605,11 @@ export default function RemixerPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {trackLibrary.map((file, i) => (
+                                {filteredTracks.map((file, i) => (
                                     <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                                         <td className="py-3 pl-4 text-center font-mono text-xs text-white/50">{i + 1}</td>
                                         <td className="py-3 font-medium text-sm flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-white/50 shrink-0">
+                                            <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-white/50 shrink-0 group-hover:bg-emerald-500/10 group-hover:text-emerald-500 transition-colors">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                                             </div>
                                             <span className="truncate max-w-xs md:max-w-md">{file.name}</span>
