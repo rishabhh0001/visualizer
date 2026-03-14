@@ -91,7 +91,7 @@ export function Deck({
 
     return (
         <div
-            className={`flex-1 rounded-xl p-6 flex flex-col gap-4 border transition-colors ${isDragging ? `border-${colorClass}-500 bg-white/10` : "border-white/5 bg-white/5"
+            className={`flex-1 rounded-xl p-4 flex flex-col gap-2 md:gap-3 border transition-colors ${isDragging ? `border-${colorClass}-500 bg-white/10` : "border-white/5 bg-white/5"
                 }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -147,7 +147,7 @@ export function Deck({
 
             {/* Waveform / Progress Scrub */}
             <div
-                className="h-24 rounded-lg flex items-center justify-center relative overflow-hidden group cursor-pointer"
+                className="h-16 md:h-20 rounded-lg flex items-center justify-center relative overflow-hidden group cursor-pointer"
                 style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.05)" }}
                 onClick={(e) => {
                     if (!duration) return;
@@ -222,10 +222,10 @@ export function Deck({
             </div>
 
             {/* Controls */}
-            <div className="flex items-center gap-4 mt-2">
+            <div className="flex items-center gap-2 md:gap-4 mt-1 md:mt-2">
                 <button
                     onClick={() => seek(0)}
-                    className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 bg-white/5 hover:bg-white/10"
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 bg-white/5 hover:bg-white/10 shrink-0"
                 >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="19,20 9,12 19,4" /><rect x="5" y="4" width="2" height="16" /></svg>
                 </button>
@@ -233,7 +233,7 @@ export function Deck({
                 <button
                     onClick={togglePlayback}
                     disabled={!file}
-                    className="w-16 h-16 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                    className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 shrink-0"
                     style={{
                         background: isPlaying ? `rgba(${colorClass === "emerald" ? "16,185,129" : "6,182,212"},0.2)` : "rgba(255,255,255,0.1)",
                         border: isPlaying ? `1px solid ${colorHex}` : "1px solid transparent",
@@ -241,8 +241,8 @@ export function Deck({
                     }}
                 >
                     {isPlaying
-                        ? <svg width="24" height="24" viewBox="0 0 24 24" fill={colorHex}><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
-                        : <svg width="24" height="24" viewBox="0 0 24 24" fill="white" style={{ marginLeft: 3 }}><polygon points="5,3 19,12 5,21" /></svg>
+                        ? <svg width="24" height="24" viewBox="0 0 24 24" fill={colorHex} className="w-5 h-5 md:w-6 md:h-6"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                        : <svg width="24" height="24" viewBox="0 0 24 24" fill="white" className="w-5 h-5 md:w-6 md:h-6" style={{ marginLeft: 3 }}><polygon points="5,3 19,12 5,21" /></svg>
                     }
                 </button>
 

@@ -44,6 +44,7 @@ Give me the exact move to make right now to blend these seamlessly.`;
 
         return NextResponse.json({ suggestion: text });
     } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        console.error("Automix API Error:", e);
+        return NextResponse.json({ error: e.message || String(e) }, { status: 500 });
     }
 }
