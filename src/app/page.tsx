@@ -195,7 +195,7 @@ export default function Home() {
               <li><Link href="/remixer" className="hover:text-emerald-400 transition-colors">Remixer Pro</Link></li>
               <li><Link href="/visualizer" className="hover:text-emerald-400 transition-colors">Visualizer</Link></li>
               <li><a href="#" className="hover:text-emerald-400 transition-colors">Documentation</a></li>
-              <li><a href="#" className="hover:text-emerald-400 transition-colors">GitHub</a></li>
+              <li><a href="https://github.com/rishabhh0001/visualizer" className="hover:text-emerald-400 transition-colors">GitHub</a></li>
             </ul>
           </div>
 
@@ -204,7 +204,6 @@ export default function Home() {
             <ul className="flex flex-col gap-4 text-sm text-white/60">
               <li><a href="#" className="hover:text-emerald-400 transition-colors">Privacy Policy</a></li>
               <li><a href="#" className="hover:text-emerald-400 transition-colors">Terms of Service</a></li>
-              <li><a href="https://github.com/rishabhh0001/visualizer" className="hover:text-emerald-400 transition-colors">Cookie Policy</a></li>
             </ul>
           </div>
         </div>
