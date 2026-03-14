@@ -1,0 +1,40 @@
+
+C:\Users\risha\visualizer\src\app\remixer\page.tsx
+    3:31   warning  'useRef' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+    5:40   warning  'Play' is defined but never used                                                                              @typescript-eslint/no-unused-vars
+    5:46   warning  'Pause' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+    5:53   warning  'SkipBack' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+   18:64   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   31:8    warning  React Hook useEffect has a missing dependency: 'initAudio'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  120:78   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  126:102  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  133:104  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  278:78   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  284:102  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  291:104  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+
+C:\Users\risha\visualizer\src\components\Deck.tsx
+  31:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\risha\visualizer\src\components\Deck.tsx:31:9
+  29 |     useEffect(() => {
+  30 |         // Run once on mount to establish pure random values without SSR mismatch
+> 31 |         setAestheticBars(Array.from({ length: 40 }).map(() => 20 + Math.random() * 60));
+     |         ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  32 |     }, []);
+  33 |
+  34 |     const handleDragOver = (e: React.DragEvent) => {  react-hooks/set-state-in-effect
+
+C:\Users\risha\visualizer\src\hooks\useAudioDeck.ts
+  20:9   error    'intervals' is never reassigned. Use 'const' instead  prefer-const
+  97:15  warning  'widener' is assigned a value but never used          @typescript-eslint/no-unused-vars
+
+Γ£û 15 problems (9 errors, 6 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

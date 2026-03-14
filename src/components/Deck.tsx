@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export function Deck({
     deckName,
@@ -10,6 +11,7 @@ export function Deck({
 }: {
     deckName: string;
     colorClass?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     audioState: any;
     onInteraction?: () => void;
 }) {
@@ -18,10 +20,17 @@ export function Deck({
     const {
         file, isPlaying, currentTime, duration,
         togglePlayback, seek, loadFile, setPitch, pitch,
-        setFx, fx, baseBpm
+        baseBpm, loopIn, setLoopIn, loopOut, setLoopOut, isLooping, toggleLoop,
+        hotCues, handleHotCue, clearHotCue
     } = audioState;
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [aestheticBars, setAestheticBars] = useState<number[]>(Array(40).fill(20));
+
+    useEffect(() => {
+        // Run once on mount to establish pure random values without SSR mismatch
+        setAestheticBars(Array.from({ length: 40 }).map(() => 20 + Math.random() * 60));
+    }, []);
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -137,14 +146,53 @@ export function Deck({
                         />
                         {/* Generic waveform bars for aesthetic */}
                         <div className="flex items-center gap-[2px] w-full px-2 opacity-50 pointer-events-none">
-                            {Array.from({ length: 40 }).map((_, i) => (
-                                <div key={i} className="flex-1 bg-white/40 rounded-full" style={{ height: `${20 + Math.random() * 60}%` }} />
+                            {aestheticBars.map((height, i) => (
+                                <div key={i} className="flex-1 bg-white/40 rounded-full" style={{ height: `${height}%` }} />
                             ))}
                         </div>
                     </>
                 ) : (
                     <span className="text-white/20 text-xs font-medium">NO TRACK LOADED</span>
                 )}
+            </div>
+
+            {/* Loop & Hot Cues Row */}
+            <div className="flex justify-between items-center gap-4">
+                {/* Loop Controls */}
+                <div className="flex bg-black/40 rounded-lg p-1 border border-white/10">
+                    <button
+                        className={`text-[9px] font-bold px-3 py-1.5 rounded transition-colors ${loopIn !== null && !isLooping ? 'bg-yellow-500/20 text-yellow-500' : 'text-white/40 hover:text-white'}`}
+                        onClick={() => { if (loopIn === null) setLoopIn(currentTime); else setLoopIn(null); }}
+                    >
+                        IN
+                    </button>
+                    <button
+                        className={`text-[9px] font-bold px-3 py-1.5 rounded transition-colors ${loopOut !== null && !isLooping ? 'bg-yellow-500/20 text-yellow-500' : 'text-white/40 hover:text-white'}`}
+                        onClick={() => { if (loopIn !== null && loopOut === null) setLoopOut(currentTime); else setLoopOut(null); }}
+                    >
+                        OUT
+                    </button>
+                    <button
+                        className={`text-[9px] font-bold px-3 py-1.5 rounded transition-colors ${isLooping ? 'bg-yellow-500 text-black shadow-[0_0_10px_#eab308]' : 'text-white/40 hover:text-white'}`}
+                        onClick={toggleLoop}
+                    >
+                        RELOOP
+                    </button>
+                </div>
+
+                {/* Hot Cues */}
+                <div className="flex gap-2">
+                    {hotCues.map((cue: number | null, i: number) => (
+                        <button
+                            key={i}
+                            className={`w-10 h-8 rounded border transition-all relative group ${cue !== null ? `bg-${colorClass}-500/20 border-${colorClass}-500/50 shadow-[0_0_8px_rgba(${colorClass === 'emerald' ? '16,185,129' : '6,182,212'},0.4)]` : 'bg-black/50 border-white/5 hover:bg-white/5'}`}
+                            onClick={() => handleHotCue(i)}
+                            onContextMenu={(e) => { e.preventDefault(); clearHotCue(i); }}
+                        >
+                            <span className={`text-[8px] font-bold absolute bottom-1 right-1 ${cue !== null ? `text-${colorClass}-400` : 'text-white/20'}`}>{i + 1}</span>
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Controls */}

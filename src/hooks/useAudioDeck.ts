@@ -3,7 +3,7 @@ import { useRef, useState, useEffect } from "react";
 const guessBPM = (buffer: AudioBuffer): number => {
     const data = buffer.getChannelData(0);
     const sampleRate = buffer.sampleRate;
-    let peaks = [];
+    const peaks = [];
     let max = 0;
     for (let i = 0; i < Math.min(data.length, sampleRate * 30); i++) { // scan first 30s
         if (Math.abs(data[i]) > max) max = Math.abs(data[i]);
@@ -17,7 +17,7 @@ const guessBPM = (buffer: AudioBuffer): number => {
         }
     }
     if (peaks.length < 2) return 120;
-    let intervals: { [key: number]: number } = {};
+    const intervals: { [key: number]: number } = {};
     for (let i = 1; i < peaks.length; i++) {
         let tempo = 60 / ((peaks[i] - peaks[i - 1]) / sampleRate);
         while (tempo < 70) tempo *= 2;
@@ -200,6 +200,12 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         if (gainNodeRef.current) gainNodeRef.current.gain.setTargetAtTime(volume * (fx.width > 1 ? 1.1 : 1.0), now, 0.05);
     }, [fx, audioContext, volume]);
 
+    const [loopIn, setLoopIn] = useState<number | null>(null);
+    const [loopOut, setLoopOut] = useState<number | null>(null);
+    const [isLooping, setIsLooping] = useState(false);
+
+    const [hotCues, setHotCues] = useState<(number | null)[]>([null, null, null, null]);
+
     // Load and decode file
     const loadFile = async (newFile: File) => {
         if (!audioContext) return;
@@ -212,11 +218,22 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         setDuration(decoded.duration);
         setCurrentTime(0);
         pauseTimeRef.current = 0;
+        setHotCues([null, null, null, null]);
+        setLoopIn(null);
+        setLoopOut(null);
+        setIsLooping(false);
     };
 
     const updateProgress = () => {
         if (!isPlaying || !audioContext) return;
         const elapsed = (audioContext.currentTime - startTimeRef.current) * pitch + pauseTimeRef.current;
+
+        // Handle looping
+        if (isLooping && loopIn !== null && loopOut !== null && elapsed >= loopOut) {
+            seek(loopIn);
+            return;
+        }
+
         if (elapsed >= (buffer?.duration || 0)) {
             stop();
             return;
@@ -260,7 +277,7 @@ export function useAudioDeck(audioContext: AudioContext | null) {
 
     const stop = () => {
         if (sourceRef.current) {
-            try { sourceRef.current.stop(); } catch (e) { }
+            try { sourceRef.current.stop(); } catch { }
             sourceRef.current.disconnect();
         }
         setIsPlaying(false);
@@ -280,6 +297,39 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         pauseTimeRef.current = time;
         setCurrentTime(time);
         if (wasPlaying) play();
+    };
+
+    // Hot Cues
+    const handleHotCue = (index: number) => {
+        if (hotCues[index] === null) {
+            // Set cue
+            const newCues = [...hotCues];
+            newCues[index] = currentTime;
+            setHotCues(newCues);
+        } else {
+            // Jump to cue
+            seek(hotCues[index]!);
+            if (!isPlaying) play();
+        }
+    };
+
+    const clearHotCue = (index: number) => {
+        const newCues = [...hotCues];
+        newCues[index] = null;
+        setHotCues(newCues);
+    };
+
+    // Loop logic
+    const toggleLoop = () => {
+        if (loopIn !== null && loopOut !== null) {
+            setIsLooping(!isLooping);
+        } else if (loopIn !== null && loopOut === null) {
+            // implicit out at current time
+            if (currentTime > loopIn) {
+                setLoopOut(currentTime);
+                setIsLooping(true);
+            }
+        }
     };
 
     // Handle pitch changes
@@ -309,5 +359,14 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         setEq,
         setFx,
         setBaseBpm,
+        hotCues,
+        handleHotCue,
+        clearHotCue,
+        loopIn,
+        setLoopIn,
+        loopOut,
+        setLoopOut,
+        isLooping,
+        toggleLoop
     };
 }

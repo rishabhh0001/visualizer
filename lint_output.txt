@@ -1,0 +1,44 @@
+
+C:\Users\risha\visualizer\src\app\page.tsx
+  33:11  error  Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+C:\Users\risha\visualizer\src\app\remixer\page.tsx
+    3:31   warning  'useRef' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+    5:40   warning  'Play' is defined but never used                                                                              @typescript-eslint/no-unused-vars
+    5:46   warning  'Pause' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+    5:53   warning  'SkipBack' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+   18:64   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   31:8    warning  React Hook useEffect has a missing dependency: 'initAudio'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  120:78   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  126:102  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  133:104  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  278:78   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  284:102  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  291:104  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+
+C:\Users\risha\visualizer\src\components\Deck.tsx
+   13:17   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+   21:9    warning  'setFx' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+   21:16   warning  'fx' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  143:115  error    Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\risha\visualizer\src\components\Deck.tsx:143:115
+  141 |                         <div className="flex items-center gap-[2px] w-full px-2 opacity-50 pointer-events-none">
+  142 |                             {Array.from({ length: 40 }).map((_, i) => (
+> 143 |                                 <div key={i} className="flex-1 bg-white/40 rounded-full" style={{ height: `${20 + Math.random() * 60}%` }} />
+      |                                                                                                                   ^^^^^^^^^^^^^ Cannot call impure function
+  144 |                             ))}
+  145 |                         </div>
+  146 |                     </>  react-hooks/purity
+
+C:\Users\risha\visualizer\src\hooks\useAudioDeck.ts
+    6:9   error    'peaks' is never reassigned. Use 'const' instead      prefer-const
+   20:9   error    'intervals' is never reassigned. Use 'const' instead  prefer-const
+   97:15  warning  'widener' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  280:54  warning  'e' is defined but never used                         @typescript-eslint/no-unused-vars
+
+Γ£û 21 problems (12 errors, 9 warnings)
+  2 errors and 0 warnings potentially fixable with the `--fix` option.
+

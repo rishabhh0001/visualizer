@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AudioWaveform, Disc3, Radio } from "lucide-react";
 import { Scene3D } from "@/components/Scene3D";
 import { motion } from "framer-motion";
@@ -30,10 +31,10 @@ export default function Home() {
         className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-8 py-5"
       >
         <div className="flex items-center gap-2 text-white font-black text-lg tracking-tighter">
-          <a href="/" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2 group">
             <AudioWaveform className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
             WAVE<span className="text-emerald-500">CRAFT</span>
-          </a>
+          </Link>
           <span className="text-zinc-600 mx-1">·</span>
           <a href="https://rishabhj.in" target="_blank" rel="noopener"
             className="text-emerald-500 text-xs font-semibold hover:text-emerald-400 transition-colors" style={{ opacity: 0.85 }}>
@@ -41,13 +42,13 @@ export default function Home() {
           </a>
         </div>
         <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 hover:bg-black/60 transition-colors">
-          <a href="/visualizer" className="flex items-center gap-1.5 text-xs font-medium text-white/60 hover:text-white transition-colors px-3 py-1">
+          <Link href="/visualizer" className="flex items-center gap-1.5 text-xs font-medium text-white/60 hover:text-white transition-colors px-3 py-1">
             <Radio className="w-3.5 h-3.5" /> Visualizer
-          </a>
+          </Link>
           <div className="w-px h-3 bg-white/10" />
-          <a href="/remixer" className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1">
+          <Link href="/remixer" className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1">
             <Disc3 className="w-3.5 h-3.5" /> Remixer Pro
-          </a>
+          </Link>
         </div>
       </motion.nav>
 
@@ -191,8 +192,8 @@ export default function Home() {
           <div>
             <h4 className="text-xs font-bold tracking-widest uppercase mb-6 text-white/40">Platform</h4>
             <ul className="flex flex-col gap-4 text-sm text-white/60">
-              <li><a href="/remixer" className="hover:text-emerald-400 transition-colors">Remixer Pro</a></li>
-              <li><a href="/visualizer" className="hover:text-emerald-400 transition-colors">Visualizer</a></li>
+              <li><Link href="/remixer" className="hover:text-emerald-400 transition-colors">Remixer Pro</Link></li>
+              <li><Link href="/visualizer" className="hover:text-emerald-400 transition-colors">Visualizer</Link></li>
               <li><a href="#" className="hover:text-emerald-400 transition-colors">Documentation</a></li>
               <li><a href="#" className="hover:text-emerald-400 transition-colors">GitHub</a></li>
             </ul>

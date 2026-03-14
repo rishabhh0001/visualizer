@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -219,27 +222,49 @@ export default function RemixerPage() {
                                     </div>
                                 </div>
 
-                                {/* Channel Filters */}
-                                <div className="flex gap-12 mt-4">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <div className="w-10 h-10 rounded-full border-2 border-white/5 bg-black relative cursor-pointer hover:border-emerald-500/30 transition-colors">
-                                            <div className="w-0.5 h-3 bg-emerald-500 absolute top-1 left-1/2 -translate-x-1/2 rounded-full"
-                                                style={{ transform: "translateX(-50%) rotate(0deg)", transformOrigin: "bottom center" }} />
+                                {/* Channel Volume Faders */}
+                                <div className="flex gap-8 mt-4 w-full justify-center px-4">
+                                    {/* Deck A Volume */}
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="text-[9px] text-white/40 font-bold uppercase tracking-widest">VOL A</div>
+                                        <div className="relative h-24 w-8 flex justify-center bg-black/40 rounded-lg border border-white/5 py-2">
+                                            {/* Track */}
+                                            <div className="absolute w-1 h-full bg-white/10 rounded-full" />
+                                            {/* Slider */}
+                                            <input
+                                                type="range"
+                                                min="0" max="1" step="0.01"
+                                                value={deckA.volume}
+                                                onChange={(e) => deckA.setVolume(parseFloat(e.target.value))}
+                                                className="absolute w-24 h-4 -rotate-90 top-1/2 -translate-y-1/2 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:bg-emerald-500 [&::-webkit-slider-thumb]:rounded-sm [&::-webkit-slider-thumb]:shadow-lg"
+                                            />
+                                            {/* Visual Level Meter */}
+                                            <div className="absolute left-1 bottom-2 w-0.5 bg-black/50 rounded-full overflow-hidden" style={{ height: 'calc(100% - 16px)' }}>
+                                                <div className="absolute bottom-0 w-full bg-emerald-500/50" style={{ height: `${deckA.volume * 100}%` }} />
+                                            </div>
                                         </div>
-                                        <span className="text-[7px] text-white/20 uppercase font-black">Deck A Fil</span>
                                     </div>
-                                    <div className="flex flex-col items-center gap-1">
-                                        <div className="w-10 h-10 rounded-full border-2 border-white/5 bg-black relative cursor-pointer hover:border-cyan-500/30 transition-colors">
-                                            <div className="w-0.5 h-3 bg-cyan-500 absolute top-1 left-1/2 -translate-x-1/2 rounded-full"
-                                                style={{ transform: "translateX(-50%) rotate(0deg)", transformOrigin: "bottom center" }} />
-                                        </div>
-                                        <span className="text-[7px] text-white/20 uppercase font-black">Deck B Fil</span>
-                                    </div>
-                                </div>
 
-                                <div className="w-1.5 h-32 bg-black/60 rounded-full border border-white/5 relative overflow-hidden">
-                                    <div className="absolute bottom-0 w-full bg-emerald-500/40" style={{ height: '40%' }} />
-                                    <div className="absolute bottom-0 w-full bg-white/10" style={{ height: '100%' }} />
+                                    {/* Deck B Volume */}
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="text-[9px] text-white/40 font-bold uppercase tracking-widest">VOL B</div>
+                                        <div className="relative h-24 w-8 flex justify-center bg-black/40 rounded-lg border border-white/5 py-2">
+                                            {/* Track */}
+                                            <div className="absolute w-1 h-full bg-white/10 rounded-full" />
+                                            {/* Slider */}
+                                            <input
+                                                type="range"
+                                                min="0" max="1" step="0.01"
+                                                value={deckB.volume}
+                                                onChange={(e) => deckB.setVolume(parseFloat(e.target.value))}
+                                                className="absolute w-24 h-4 -rotate-90 top-1/2 -translate-y-1/2 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:bg-cyan-500 [&::-webkit-slider-thumb]:rounded-sm [&::-webkit-slider-thumb]:shadow-lg"
+                                            />
+                                            {/* Visual Level Meter */}
+                                            <div className="absolute right-1 bottom-2 w-0.5 bg-black/50 rounded-full overflow-hidden" style={{ height: 'calc(100% - 16px)' }}>
+                                                <div className="absolute bottom-0 w-full bg-cyan-500/50" style={{ height: `${deckB.volume * 100}%` }} />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

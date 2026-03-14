@@ -1,0 +1,36 @@
+
+C:\Users\risha\visualizer\src\app\remixer\page.tsx
+    3:31   warning  'useRef' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+    5:40   warning  'Play' is defined but never used                                                                              @typescript-eslint/no-unused-vars
+    5:46   warning  'Pause' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+    5:53   warning  'SkipBack' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+   18:64   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   31:8    warning  React Hook useEffect has a missing dependency: 'initAudio'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  120:78   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  126:102  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  133:104  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  278:78   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  284:102  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  291:104  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+
+C:\Users\risha\visualizer\src\components\Deck.tsx
+  27:83  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\risha\visualizer\src\components\Deck.tsx:27:83
+  25 |
+  26 |     const fileInputRef = useRef<HTMLInputElement>(null);
+> 27 |     const aestheticBars = useMemo(() => Array.from({ length: 40 }).map(() => 20 + Math.random() * 60), []);
+     |                                                                                   ^^^^^^^^^^^^^ Cannot call impure function
+  28 |
+  29 |     const handleDragOver = (e: React.DragEvent) => {
+  30 |         e.preventDefault();  react-hooks/purity
+
+C:\Users\risha\visualizer\src\hooks\useAudioDeck.ts
+  20:9   error    'intervals' is never reassigned. Use 'const' instead  prefer-const
+  97:15  warning  'widener' is assigned a value but never used          @typescript-eslint/no-unused-vars
+
+Γ£û 15 problems (9 errors, 6 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+
