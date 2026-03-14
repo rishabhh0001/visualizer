@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
     try {
-        const { trackA, trackB } = await req.json();
+        const { trackA, trackB, crossfader } = await req.json();
 
         // Use NVIDIA_API_KEY or fallback to GEMINI_API_KEY if they reuse the same env var name
         const apiKey = process.env.NVIDIA_API_KEY || process.env.GEMINI_API_KEY;
@@ -11,23 +11,30 @@ export async function POST(req: Request) {
         }
 
         const prompt = `You are an elite club DJ assistant. 
-I am actively mixing two tracks.
-Track A (Master): BPM ${trackA.bpm.toFixed(1)}, Time Elapsed: ${trackA.elapsed.toFixed(1)}s / ${trackA.duration.toFixed(1)}s.
-Track B (Incoming): BPM ${trackB.bpm.toFixed(1)}, Time Elapsed: ${trackB.elapsed.toFixed(1)}s / ${trackB.duration.toFixed(1)}s.
+I am actively mixing two tracks. You control the entire mixer.
+Track A (Master): BPM ${trackA.bpm.toFixed(1)}, Time: ${trackA.elapsed.toFixed(1)}s / ${trackA.duration.toFixed(1)}s (${((trackA.elapsed/trackA.duration)*100).toFixed(0)}%). Playing: ${trackA.isPlaying}. Vol: ${trackA.volume.toFixed(2)}. EQ(H/M/L): ${trackA.eq.high}/${trackA.eq.mid}/${trackA.eq.low}. FX(Delay/Rev/Wide): ${trackA.fx.delayFeedback.toFixed(2)}/${trackA.fx.reverbMix.toFixed(2)}/${trackA.fx.width.toFixed(2)}.
+Track B (Incoming): BPM ${trackB.bpm.toFixed(1)}, Time: ${trackB.elapsed.toFixed(1)}s / ${trackB.duration.toFixed(1)}s (${((trackB.elapsed/trackB.duration)*100).toFixed(0)}%). Playing: ${trackB.isPlaying}. Vol: ${trackB.volume.toFixed(2)}. EQ(H/M/L): ${trackB.eq.high}/${trackB.eq.mid}/${trackB.eq.low}. FX(Delay/Rev/Wide): ${trackB.fx.delayFeedback.toFixed(2)}/${trackB.fx.reverbMix.toFixed(2)}/${trackB.fx.width.toFixed(2)}.
+Crossfader: ${crossfader.toFixed(2)} (0 = Deck A, 1 = Deck B).
 
-Return a punchy, creative mixing instruction.
+Analyze the track phrasing (e.g. 0-10% Intro, 40-60% Drop/Breakdown, 90-100% Outro).
+Return a punchy, creative mixing instruction and output the TARGET STATE of the mixer to perform a seamless 2.5 second transition.
 You MUST return ONLY a valid JSON object with no markdown formatting or backticks.
 The JSON must follow this exact format:
 {
-  "suggestion": "A short 1-2 sentence description of the move (e.g. 'Cut bass on A and slowly fade in B')",
+  "suggestion": "A short description of the move (e.g. 'Track A is ending. Swapping bass on B and fading over')",
   "action": {
-    "crossfader": 0.5, // Target crossfader value (0 = only A, 1 = only B). 0.5 is middle.
-    "sync": true,     // true if you want to sync BPMs
-    "playA": true,    // set to true to ensure Deck A is playing, false to pause, omit to leave as is
-    "playB": true     // set to true to ensure Deck B is playing, false to pause, omit to leave as is
+    "crossfader": 0.5, // 0 to 1
+    "sync": true,     // true to sync BPMs
+    "playA": true,    // set true/false to ensure playback state
+    "playB": true,    // set true/false to ensure playback state
+    "volA": 1.0, "volB": 0.8, // 0 to 1
+    "eqA": { "high": 0, "mid": 0, "low": -12 }, // -12 to +12
+    "eqB": { "high": 0, "mid": 0, "low": 0 },   // -12 to +12
+    "fxA": { "delayFeedback": 0.2, "reverbMix": 0.1, "width": 1.0 }, // Delay 0-0.9, Rev 0-0.8, Wide 0.5-2.0
+    "fxB": { "delayFeedback": 0.0, "reverbMix": 0.0, "width": 1.0 }  // Delay 0-0.9, Rev 0-0.8, Wide 0.5-2.0
   }
 }
-Give me the exact move to make right now to blend these seamlessly. Return ONLY JSON.`;
+Give me the exact move to make right now. Omit properties in "action" if they should remain unchanged. Return ONLY JSON.`;
 
         const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
             method: "POST",

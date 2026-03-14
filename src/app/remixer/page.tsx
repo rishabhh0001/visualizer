@@ -66,8 +66,15 @@ export default function RemixerPage() {
             const res = await fetch('/api/automix', {
                 method: 'POST',
                 body: JSON.stringify({
-                    trackA: { bpm: deckA.baseBpm * deckA.pitch, elapsed: deckA.getElapsed(), duration: deckA.duration || 1 },
-                    trackB: { bpm: deckB.baseBpm * deckB.pitch, elapsed: deckB.getElapsed(), duration: deckB.duration || 1 }
+                    crossfader,
+                    trackA: { 
+                        isPlaying: deckA.isPlaying, volume: deckA.volume, eq: deckA.eq, fx: deckA.fx, 
+                        bpm: deckA.baseBpm * deckA.pitch, elapsed: deckA.getElapsed(), duration: deckA.duration || 1 
+                    },
+                    trackB: { 
+                        isPlaying: deckB.isPlaying, volume: deckB.volume, eq: deckB.eq, fx: deckB.fx,
+                        bpm: deckB.baseBpm * deckB.pitch, elapsed: deckB.getElapsed(), duration: deckB.duration || 1 
+                    }
                 })
             });
             const data = await res.json();
@@ -79,48 +86,95 @@ export default function RemixerPage() {
 
             // Execute automated actions if present
             if (data.action) {
-                const { sync, playA, playB, crossfader: targetCrossfader } = data.action;
+                const action = data.action;
 
-                // Handle Sync
-                if (sync && deckA.buffer && deckB.buffer) {
+                // Handle Sync Instantly
+                if (action.sync && deckA.buffer && deckB.buffer) {
                     deckB.setPitch(deckA.pitch);
                 }
 
-                // Handle Playback
-                if (playA !== undefined) {
-                    if (playA && !deckA.isPlaying) deckA.togglePlayback();
-                    if (!playA && deckA.isPlaying) deckA.togglePlayback();
+                // Handle Playback Instantly
+                if (action.playA !== undefined) {
+                    if (action.playA && !deckA.isPlaying) deckA.togglePlayback();
+                    if (!action.playA && deckA.isPlaying) deckA.togglePlayback();
                 }
-                if (playB !== undefined) {
-                    if (playB && !deckB.isPlaying) deckB.togglePlayback();
-                    if (!playB && deckB.isPlaying) deckB.togglePlayback();
+                if (action.playB !== undefined) {
+                    if (action.playB && !deckB.isPlaying) deckB.togglePlayback();
+                    if (!action.playB && deckB.isPlaying) deckB.togglePlayback();
                 }
 
-                // Animate Crossfader smoothly over 2.5 seconds
-                if (targetCrossfader !== undefined) {
-                    const startValue = crossfader;
-                    const endValue = Math.max(0, Math.min(1, targetCrossfader));
-                    const durationMs = 2500;
-                    const startTime = performance.now();
+                // Animate Unified Controls Smoothly over 2.5 seconds
+                const durationMs = 2500;
+                const startTime = performance.now();
+                
+                // Snapshot initial states
+                const startCrossfader = crossfader;
+                const startVolA = deckA.volume;
+                const startVolB = deckB.volume;
+                const startEqA = { ...deckA.eq };
+                const startEqB = { ...deckB.eq };
+                const startFxA = { ...deckA.fx };
+                const startFxB = { ...deckB.fx };
 
-                    const animateCrossfader = (currentTime: number) => {
-                        const elapsed = currentTime - startTime;
-                        const progress = Math.min(elapsed / durationMs, 1);
-                        
-                        // Ease in out cubic for smooth fader sliding
-                        const easeProgress = progress < 0.5 
-                            ? 4 * progress * progress * progress 
-                            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+                // Get target states (or fallback to initial stat if not provided)
+                const targetCrossfader = action.crossfader !== undefined ? Math.max(0, Math.min(1, action.crossfader)) : startCrossfader;
+                const targetVolA = action.volA !== undefined ? Math.max(0, Math.min(1, action.volA)) : startVolA;
+                const targetVolB = action.volB !== undefined ? Math.max(0, Math.min(1, action.volB)) : startVolB;
+                const targetEqA = { ...startEqA, ...action.eqA };
+                const targetEqB = { ...startEqB, ...action.eqB };
+                const targetFxA = { ...startFxA, ...action.fxA };
+                const targetFxB = { ...startFxB, ...action.fxB };
 
-                        const currentValue = startValue + (endValue - startValue) * easeProgress;
-                        setCrossfader(currentValue);
+                const animateMixer = (currentTime: number) => {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / durationMs, 1);
+                    
+                    // Ease in out cubic
+                    const easeProgress = progress < 0.5 
+                        ? 4 * Math.pow(progress, 3) 
+                        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 
-                        if (progress < 1) {
-                            requestAnimationFrame(animateCrossfader);
-                        }
-                    };
-                    requestAnimationFrame(animateCrossfader);
-                }
+                    // Interpolation Helper
+                    const lerp = (start: number, end: number) => start + (end - start) * easeProgress;
+
+                    // Apply Interpolated Values
+                    if (action.crossfader !== undefined) setCrossfader(lerp(startCrossfader, targetCrossfader));
+                    if (action.volA !== undefined) deckA.setVolume(lerp(startVolA, targetVolA));
+                    if (action.volB !== undefined) deckB.setVolume(lerp(startVolB, targetVolB));
+                    
+                    if (action.eqA) deckA.setEq({
+                        high: lerp((startEqA as any).high, targetEqA.high),
+                        mid: lerp((startEqA as any).mid, targetEqA.mid),
+                        low: lerp((startEqA as any).low, targetEqA.low)
+                    });
+                    
+                    if (action.eqB) deckB.setEq({
+                        high: lerp((startEqB as any).high, targetEqB.high),
+                        mid: lerp((startEqB as any).mid, targetEqB.mid),
+                        low: lerp((startEqB as any).low, targetEqB.low)
+                    });
+
+                    if (action.fxA) deckA.setFx({
+                        delayTime: startFxA.delayTime,
+                        delayFeedback: lerp(startFxA.delayFeedback, targetFxA.delayFeedback),
+                        reverbMix: lerp(startFxA.reverbMix, targetFxA.reverbMix),
+                        width: lerp(startFxA.width, targetFxA.width),
+                        compression: lerp(startFxA.compression, targetFxA.compression)
+                    });
+
+                    if (action.fxB) deckB.setFx({
+                        delayTime: startFxB.delayTime,
+                        delayFeedback: lerp(startFxB.delayFeedback, targetFxB.delayFeedback),
+                        reverbMix: lerp(startFxB.reverbMix, targetFxB.reverbMix),
+                        width: lerp(startFxB.width, targetFxB.width),
+                        compression: lerp(startFxB.compression, targetFxB.compression)
+                    });
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animateMixer);
+                    }
+                };
+                requestAnimationFrame(animateMixer);
             }
         } catch (e) {
             console.error("AI Automix failed:", e);
