@@ -1,5 +1,40 @@
 import { useRef, useState, useEffect } from "react";
 
+const guessBPM = (buffer: AudioBuffer): number => {
+    const data = buffer.getChannelData(0);
+    const sampleRate = buffer.sampleRate;
+    let peaks = [];
+    let max = 0;
+    for (let i = 0; i < Math.min(data.length, sampleRate * 30); i++) { // scan first 30s
+        if (Math.abs(data[i]) > max) max = Math.abs(data[i]);
+    }
+    const threshold = max * 0.8;
+    const gap = sampleRate / 5; // 200ms skip
+    for (let i = 0; i < Math.min(data.length, sampleRate * 30); i++) {
+        if (Math.abs(data[i]) > threshold) {
+            peaks.push(i);
+            i += gap;
+        }
+    }
+    if (peaks.length < 2) return 120;
+    let intervals: { [key: number]: number } = {};
+    for (let i = 1; i < peaks.length; i++) {
+        let tempo = 60 / ((peaks[i] - peaks[i - 1]) / sampleRate);
+        while (tempo < 70) tempo *= 2;
+        while (tempo > 180) tempo /= 2;
+        tempo = Math.round(tempo);
+        if (tempo >= 70 && tempo <= 180) intervals[tempo] = (intervals[tempo] || 0) + 1;
+    }
+    let bestTempo = 120, maxCount = 0;
+    for (const t in intervals) {
+        if (intervals[t] > maxCount) {
+            maxCount = intervals[t];
+            bestTempo = parseInt(t);
+        }
+    }
+    return bestTempo;
+};
+
 export function useAudioDeck(audioContext: AudioContext | null) {
     const [file, setFile] = useState<File | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -16,6 +51,7 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         width: 1.0 // 0 to 2
     });
     const [buffer, setBuffer] = useState<AudioBuffer | null>(null);
+    const [baseBpm, setBaseBpm] = useState(120);
 
     const sourceRef = useRef<AudioBufferSourceNode | null>(null);
     const gainNodeRef = useRef<GainNode | null>(null);
@@ -172,6 +208,7 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         const arrayBuffer = await newFile.arrayBuffer();
         const decoded = await audioContext.decodeAudioData(arrayBuffer);
         setBuffer(decoded);
+        setBaseBpm(guessBPM(decoded));
         setDuration(decoded.duration);
         setCurrentTime(0);
         pauseTimeRef.current = 0;
@@ -262,6 +299,7 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         pitch,
         eq,
         fx,
+        baseBpm,
         loadFile,
         togglePlayback,
         stop,
@@ -270,5 +308,6 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         setPitch,
         setEq,
         setFx,
+        setBaseBpm,
     };
 }

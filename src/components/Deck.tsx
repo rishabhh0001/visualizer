@@ -18,7 +18,7 @@ export function Deck({
     const {
         file, isPlaying, currentTime, duration,
         togglePlayback, seek, loadFile, setPitch, pitch,
-        setFx, fx
+        setFx, fx, baseBpm
     } = audioState;
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -172,25 +172,34 @@ export function Deck({
                     }
                 </button>
 
-                <div className="flex flex-col items-center gap-2 ml-auto">
-                    <span className="text-white/40 text-[10px] font-mono">PITCH {(pitch * 100).toFixed(0)}%</span>
-                    <div style={{ height: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div className="flex flex-col items-center gap-1 ml-auto">
+                    <div className="text-[10px] font-bold text-white bg-black/40 px-2 py-0.5 rounded border border-white/10" style={{ color: colorHex }}>
+                        {file ? `${(baseBpm * pitch).toFixed(1)} BPM` : "--- BPM"}
+                    </div>
+                    <span className="text-white/40 text-[9px] font-mono mt-1">PITCH {(pitch * 100).toFixed(1)}%</span>
+                    <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 4 }}>
                         <input
                             type="range"
                             value={pitch}
                             onChange={(e) => setPitch(parseFloat(e.target.value))}
-                            min={0.5}
-                            max={1.5}
-                            step={0.01}
+                            min={0.8}
+                            max={1.2}
+                            step={0.001}
                             className="cursor-pointer"
                             style={{
-                                width: 60,
+                                width: 80,
                                 height: 4,
                                 transform: "rotate(-90deg)",
                                 accentColor: colorHex,
                             }}
                         />
                     </div>
+                    <button
+                        onClick={() => setPitch(1)}
+                        className="text-[8px] bg-white/5 hover:bg-white/10 px-2 py-0.5 rounded mt-1 text-white/40 hover:text-white border border-white/5"
+                    >
+                        RESET
+                    </button>
                 </div>
             </div>
         </div>

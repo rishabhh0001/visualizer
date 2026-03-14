@@ -56,7 +56,7 @@ export default function RemixerPage() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-black text-white p-4 gap-4 overflow-hidden relative">
+        <div className="flex flex-col min-h-screen bg-black text-white p-4 gap-4 overflow-x-hidden overflow-y-auto relative">
             {/* Background Glow */}
             <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none" />
             <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
