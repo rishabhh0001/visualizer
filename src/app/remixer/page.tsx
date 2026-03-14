@@ -71,9 +71,56 @@ export default function RemixerPage() {
                 })
             });
             const data = await res.json();
+            
             if (data.suggestion) {
                 setAiSuggestion(data.suggestion);
                 setTimeout(() => setAiSuggestion(null), 15000);
+            }
+
+            // Execute automated actions if present
+            if (data.action) {
+                const { sync, playA, playB, crossfader: targetCrossfader } = data.action;
+
+                // Handle Sync
+                if (sync && deckA.buffer && deckB.buffer) {
+                    deckB.setPitch(deckA.pitch);
+                }
+
+                // Handle Playback
+                if (playA !== undefined) {
+                    if (playA && !deckA.isPlaying) deckA.togglePlayback();
+                    if (!playA && deckA.isPlaying) deckA.togglePlayback();
+                }
+                if (playB !== undefined) {
+                    if (playB && !deckB.isPlaying) deckB.togglePlayback();
+                    if (!playB && deckB.isPlaying) deckB.togglePlayback();
+                }
+
+                // Animate Crossfader smoothly over 2.5 seconds
+                if (targetCrossfader !== undefined) {
+                    const startValue = crossfader;
+                    const endValue = Math.max(0, Math.min(1, targetCrossfader));
+                    const durationMs = 2500;
+                    const startTime = performance.now();
+
+                    const animateCrossfader = (currentTime: number) => {
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / durationMs, 1);
+                        
+                        // Ease in out cubic for smooth fader sliding
+                        const easeProgress = progress < 0.5 
+                            ? 4 * progress * progress * progress 
+                            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+                        const currentValue = startValue + (endValue - startValue) * easeProgress;
+                        setCrossfader(currentValue);
+
+                        if (progress < 1) {
+                            requestAnimationFrame(animateCrossfader);
+                        }
+                    };
+                    requestAnimationFrame(animateCrossfader);
+                }
             }
         } catch (e) {
             console.error("AI Automix failed:", e);
