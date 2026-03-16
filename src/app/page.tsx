@@ -211,8 +211,8 @@ export default function Home() {
         <div className="w-full flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-white/20 font-medium px-4">
           <p>© 2026 Wavecraft Digital. Engineered for performance.</p>
           <div className="flex items-center gap-6">
-            <a href="https://linkedin.com/in/rishabh0001" className="hover:text-white transition-colors">LINKEDIN</a>
-            <a href="https://instagram.com/rishabh0001" className="hover:text-white transition-colors">INSTAGRAM</a>
+            <a href="https://linkedin.com/in/rishabhh0001" className="hover:text-white transition-colors">LINKEDIN</a>
+            <a href="https://instagram.com/rishabhh0001" className="hover:text-white transition-colors">INSTAGRAM</a>
             <a href="https://github.com/rishabhh0001" className="hover:text-white transition-colors">GITHUB</a>
           </div>
         </div>
