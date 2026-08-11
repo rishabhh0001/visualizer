@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import ytSearch from 'yt-search';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -9,18 +10,18 @@ export async function GET(request: Request) {
     }
 
     try {
-        const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=15`);
-        const data = await response.json();
+        const r = await ytSearch(query);
+        const videos = r.videos.slice(0, 15);
 
-        const results = data.results.map((track: any) => ({
-            id: track.trackId,
-            title: track.trackName,
-            artist: track.artistName,
-            albumArt: track.artworkUrl100,
-            url: track.previewUrl,
-            source: 'itunes',
-            duration: track.trackTimeMillis / 1000
-        })).filter((t: any) => t.url); // only include tracks with previews
+        const results = videos.map((track) => ({
+            id: track.videoId,
+            title: track.title,
+            artist: track.author.name,
+            albumArt: track.thumbnail,
+            url: track.url,
+            source: 'youtube',
+            duration: track.seconds
+        }));
 
         return NextResponse.json(results);
     } catch (error) {

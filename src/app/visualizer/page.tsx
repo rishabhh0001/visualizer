@@ -54,7 +54,7 @@ export default function VisualizerPage() {
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search songs (iTunes Preview)..."
+                        placeholder="Search songs on YouTube..."
                         className="bg-transparent text-white outline-none w-full"
                     />
                     {isSearching && <Loader2 className="w-5 h-5 text-gray-400 animate-spin absolute right-4" />}

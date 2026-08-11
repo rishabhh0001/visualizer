@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+import ytdl from '@distube/ytdl-core';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs'; // Ensure this runs in Node, not Edge, as ytdl-core needs Node APIs
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -9,18 +13,33 @@ export async function GET(request: Request) {
     }
 
     try {
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch from url: ${response.statusText}`);
+        if (!ytdl.validateURL(url)) {
+            return new NextResponse('Invalid YouTube URL', { status: 400 });
         }
+
+        const info = await ytdl.getInfo(url);
+        
+        // Pick the best audio format
+        const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
+        if (!format) {
+            return new NextResponse('No audio format found', { status: 404 });
+        }
+
+        // Get the stream
+        const stream = ytdl(url, { format });
 
         const headers = new Headers();
         headers.set('Access-Control-Allow-Origin', '*');
-        headers.set('Content-Type', response.headers.get('content-type') || 'audio/mpeg');
-        headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+        headers.set('Content-Type', format.mimeType || 'audio/mpeg');
+        // Tell the browser this accepts range requests (helps with seeking)
+        headers.set('Accept-Ranges', 'bytes'); 
+        
+        if (format.contentLength) {
+            headers.set('Content-Length', format.contentLength);
+        }
 
-        return new NextResponse(response.body, {
+        // We can cast the Node.js stream to any for Next.js Response
+        return new NextResponse(stream as any, {
             status: 200,
             headers
         });
