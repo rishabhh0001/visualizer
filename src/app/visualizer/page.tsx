@@ -1,8 +1,9 @@
 'use client';
 
 import { engineHtml } from "./engineHtml";
-import { useState, useRef, FormEvent } from 'react';
+import { useState, useRef, FormEvent, useEffect } from 'react';
 import { Search, Loader2, Music } from 'lucide-react';
+import { Scene3D } from '../../components/Scene3D';
 
 export default function VisualizerPage() {
     const [query, setQuery] = useState('');
@@ -10,6 +11,18 @@ export default function VisualizerPage() {
     const [isSearching, setIsSearching] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const audioData = useRef({ bass: 0, energy: 0 });
+
+    useEffect(() => {
+        const handleMessage = (e: MessageEvent) => {
+            if (e.data && e.data.type === 'AUDIO_ENERGY') {
+                audioData.current.bass = e.data.bass;
+                audioData.current.energy = e.data.energy;
+            }
+        };
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
 
     const handleSearch = async (e: FormEvent) => {
         e.preventDefault();
@@ -90,10 +103,13 @@ export default function VisualizerPage() {
                 )}
             </div>
 
+            <Scene3D audioData={audioData} />
+
             <iframe
                 ref={iframeRef}
                 srcDoc={engineHtml}
-                className="w-full h-full border-0"
+                className="w-full h-full border-0 relative z-10"
+                style={{ mixBlendMode: 'screen' }}
                 title="Wavecraft Visualizer Engine"
                 allow="autoplay; fullscreen"
             />

@@ -5,6 +5,11 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Points, PointMaterial, Float, MeshDistortMaterial, Sphere } from "@react-three/drei";
 import * as THREE from "three";
 
+export interface AudioEnergy {
+    bass: number;
+    energy: number;
+}
+
 // Custom random sphere generator to avoid relying on `maath` which broke Vercel types
 function generateSpherePositions(count: number, radius: number) {
     const positions = new Float32Array(count * 3);
@@ -19,14 +24,20 @@ function generateSpherePositions(count: number, radius: number) {
     return positions;
 }
 
-function ParticleField() {
+function ParticleField({ audioData }: { audioData: React.MutableRefObject<AudioEnergy> }) {
     const ref = useRef<THREE.Points>(null);
     const sphere = useMemo(() => generateSpherePositions(3000, 2.5), []);
 
     useFrame((state, delta) => {
         if (ref.current) {
-            ref.current.rotation.x -= delta / 30;
-            ref.current.rotation.y -= delta / 40;
+            // Speed up rotation based on bass energy
+            const speedMult = 1 + (audioData.current.bass * 15);
+            ref.current.rotation.x -= (delta / 30) * speedMult;
+            ref.current.rotation.y -= (delta / 40) * speedMult;
+            
+            // Pulse scale with bass
+            const scale = 1 + (audioData.current.bass * 0.3);
+            ref.current.scale.set(scale, scale, scale);
         }
     });
 
@@ -46,12 +57,32 @@ function ParticleField() {
     );
 }
 
-function AbstractAudioCore() {
+function AbstractAudioCore({ audioData }: { audioData: React.MutableRefObject<AudioEnergy> }) {
+    const outerRef = useRef<any>(null);
+    const innerRef = useRef<any>(null);
+
+    useFrame(() => {
+        if (outerRef.current) {
+            // Distort more with overall energy
+            outerRef.current.distort = 0.4 + (audioData.current.energy * 0.5);
+            outerRef.current.speed = 2 + (audioData.current.energy * 5);
+        }
+        if (innerRef.current) {
+            // Inner core pulses intensely with bass
+            innerRef.current.distort = 0.6 + (audioData.current.bass * 1.2);
+            innerRef.current.speed = 3 + (audioData.current.bass * 10);
+            
+            // Pulse emissive intensity
+            innerRef.current.emissiveIntensity = 0.5 + (audioData.current.bass * 2.5);
+        }
+    });
+
     return (
         <Float speed={2} rotationIntensity={1.5} floatIntensity={2}>
             {/* Outer shell */}
             <Sphere args={[1, 64, 64]} scale={1.2}>
                 <MeshDistortMaterial
+                    ref={outerRef}
                     color="#10b981"
                     attach="material"
                     distort={0.4}
@@ -67,6 +98,7 @@ function AbstractAudioCore() {
             {/* Inner glowing core */}
             <Sphere args={[0.7, 32, 32]}>
                 <MeshDistortMaterial
+                    ref={innerRef}
                     color="#06b6d4"
                     attach="material"
                     distort={0.6}
@@ -81,15 +113,15 @@ function AbstractAudioCore() {
     );
 }
 
-export function Scene3D() {
+export function Scene3D({ audioData }: { audioData: React.MutableRefObject<AudioEnergy> }) {
     return (
         <div className="absolute inset-0 z-0 opacity-80 mix-blend-screen pointer-events-none">
             <Canvas camera={{ position: [0, 0, 3.5], fov: 45 }}>
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 10, 5]} intensity={2} color="#10b981" />
                 <directionalLight position={[-10, -10, -5]} intensity={1} color="#06b6d4" />
-                <ParticleField />
-                <AbstractAudioCore />
+                <ParticleField audioData={audioData} />
+                <AbstractAudioCore audioData={audioData} />
             </Canvas>
         </div>
     );

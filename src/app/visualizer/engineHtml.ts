@@ -2290,6 +2290,19 @@ function describeArc(cx, cy, r, startDeg, endDeg) {
                             if (analyserNode) {
                                 analyserNode.getByteFrequencyData(freqData);
                                 analyserNode.getByteTimeDomainData(timeData);
+                                
+                                let bassEnergy = 0;
+                                let overallEnergy = 0;
+                                for (let i = 0; i < 10; i++) bassEnergy += freqData[i];
+                                bassEnergy /= 10;
+                                for (let i = 0; i < bufferLength; i++) overallEnergy += freqData[i];
+                                overallEnergy /= bufferLength;
+                                
+                                window.parent.postMessage({
+                                    type: 'AUDIO_ENERGY',
+                                    bass: bassEnergy / 255,
+                                    energy: overallEnergy / 255
+                                }, '*');
                             }
 
                             // Clear or Fade (Trails)
