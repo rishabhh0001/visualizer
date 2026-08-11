@@ -4,6 +4,15 @@ import SoundCloud from 'soundcloud-scraper';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// Singleton client - avoids re-fetching client_id on every search request
+let cachedClient: InstanceType<typeof SoundCloud.Client> | null = null;
+function getClient() {
+    if (!cachedClient) {
+        cachedClient = new SoundCloud.Client();
+    }
+    return cachedClient;
+}
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
@@ -13,12 +22,12 @@ export async function GET(request: Request) {
     }
 
     try {
-        const client = new SoundCloud.Client();
+        const client = getClient();
         const results = await client.search(query, 'track');
-        
+
         // Take top 15 results
         const tracks = results.slice(0, 15).map((track: any) => ({
-            id: track.url, // SoundCloud uses full URL as unique identifier for streaming
+            id: track.url,
             title: track.name,
             artist: track.artist,
             albumArt: track.thumbnail || '',
@@ -28,8 +37,14 @@ export async function GET(request: Request) {
         }));
 
         return NextResponse.json(tracks);
-    } catch (error) {
-        console.error('Search API error:', error);
+    } catch (error: any) {
+        console.error('Search API error:', error?.message ?? error);
+
+        // Reset stale client on auth errors
+        if (error?.message?.includes('401') || error?.message?.includes('403')) {
+            cachedClient = null;
+        }
+
         return NextResponse.json({ error: 'Failed to fetch search results' }, { status: 500 });
     }
 }
