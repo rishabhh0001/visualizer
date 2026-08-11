@@ -83,36 +83,38 @@ function AbstractAudioCore({ audioData }: { audioData?: React.MutableRefObject<A
 
     return (
         <Float speed={2} rotationIntensity={1.5} floatIntensity={2}>
-            {/* Outer shell */}
-            <Sphere args={[1, 64, 64]} scale={1.2}>
-                <MeshDistortMaterial
-                    ref={outerRef}
-                    color="#10b981"
-                    attach="material"
-                    distort={0.4}
-                    speed={2}
-                    roughness={0.2}
-                    metalness={0.8}
-                    wireframe
-                    transparent
-                    opacity={0.15}
-                />
-            </Sphere>
+            <group position={[0, 0, -1]} scale={0.5}>
+                {/* Outer shell */}
+                <Sphere args={[1, 64, 64]} scale={1.2}>
+                    <MeshDistortMaterial
+                        ref={outerRef}
+                        color="#10b981"
+                        attach="material"
+                        distort={0.4}
+                        speed={2}
+                        roughness={0.2}
+                        metalness={0.8}
+                        wireframe
+                        transparent
+                        opacity={0.15}
+                    />
+                </Sphere>
 
-            {/* Inner glowing core */}
-            <Sphere args={[0.7, 32, 32]}>
-                <MeshDistortMaterial
-                    ref={innerRef}
-                    color="#06b6d4"
-                    attach="material"
-                    distort={0.6}
-                    speed={3}
-                    roughness={0.1}
-                    metalness={1}
-                    emissive="#06b6d4"
-                    emissiveIntensity={0.5}
-                />
-            </Sphere>
+                {/* Inner glowing core */}
+                <Sphere args={[0.7, 32, 32]}>
+                    <MeshDistortMaterial
+                        ref={innerRef}
+                        color="#06b6d4"
+                        attach="material"
+                        distort={0.6}
+                        speed={3}
+                        roughness={0.1}
+                        metalness={1}
+                        emissive="#06b6d4"
+                        emissiveIntensity={0.5}
+                    />
+                </Sphere>
+            </group>
         </Float>
     );
 }
