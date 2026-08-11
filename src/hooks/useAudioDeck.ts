@@ -226,6 +226,27 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         setLoopOutSynced(null);
         setIsLoopingSynced(false);
     };
+
+    // Load and decode audio from a URL (e.g. our /api/stream endpoint)
+    const loadUrl = async (url: string, title?: string) => {
+        if (!audioContext) return;
+        stop();
+        // Create a synthetic File-like object for display purposes
+        const displayFile = new File([], title || url.split('/').pop() || 'Track', { type: 'audio/mpeg' });
+        setFile(displayFile);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Failed to fetch audio: ${res.status}`);
+        const arrayBuffer = await res.arrayBuffer();
+        const decoded = await audioContext.decodeAudioData(arrayBuffer);
+        setBuffer(decoded);
+        setBaseBpm(guessBPM(decoded));
+        setDuration(decoded.duration);
+        pauseTimeRef.current = 0;
+        setHotCues([null, null, null, null]);
+        setLoopInSynced(null);
+        setLoopOutSynced(null);
+        setIsLoopingSynced(false);
+    };
     const unloadFile = () => {
         stop();
         setFile(null);
@@ -370,6 +391,7 @@ export function useAudioDeck(audioContext: AudioContext | null) {
         fx,
         baseBpm,
         loadFile,
+        loadUrl,
         unloadFile,
         togglePlayback,
         stop,
