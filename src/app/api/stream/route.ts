@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import ytdl from '@distube/ytdl-core';
+import SoundCloud from 'soundcloud-scraper';
 
 export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs'; // Ensure this runs in Node, not Edge, as ytdl-core needs Node APIs
+export const runtime = 'nodejs'; // Ensure this runs in Node, not Edge
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -13,31 +13,22 @@ export async function GET(request: Request) {
     }
 
     try {
-        if (!ytdl.validateURL(url)) {
-            return new NextResponse('Invalid YouTube URL', { status: 400 });
-        }
-
-        const info = await ytdl.getInfo(url);
+        const client = new SoundCloud.Client();
         
-        // Pick the best audio format
-        const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
-        if (!format) {
-            return new NextResponse('No audio format found', { status: 404 });
+        // Ensure it's a soundcloud URL
+        if (!url.includes('soundcloud.com')) {
+            return new NextResponse('Invalid SoundCloud URL', { status: 400 });
         }
 
-        // Get the stream
-        const stream = ytdl(url, { format });
+        const song = await client.getSongInfo(url);
+        const stream = await song.downloadProgressive();
 
         const headers = new Headers();
         headers.set('Access-Control-Allow-Origin', '*');
-        headers.set('Content-Type', format.mimeType || 'audio/mpeg');
+        headers.set('Content-Type', 'audio/mpeg');
         // Tell the browser this accepts range requests (helps with seeking)
         headers.set('Accept-Ranges', 'bytes'); 
         
-        if (format.contentLength) {
-            headers.set('Content-Length', format.contentLength);
-        }
-
         // We can cast the Node.js stream to any for Next.js Response
         return new NextResponse(stream as any, {
             status: 200,

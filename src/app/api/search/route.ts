@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import YouTube from 'youtube-sr';
+import SoundCloud from 'soundcloud-scraper';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,19 +13,21 @@ export async function GET(request: Request) {
     }
 
     try {
-        const videos = await YouTube.search(query, { limit: 15, type: 'video' });
-
-        const results = videos.map((track) => ({
-            id: track.id,
-            title: track.title,
-            artist: track.channel?.name || 'Unknown Artist',
-            albumArt: track.thumbnail?.url || '',
+        const client = new SoundCloud.Client();
+        const results = await client.search(query, 'track');
+        
+        // Take top 15 results
+        const tracks = results.slice(0, 15).map((track: any) => ({
+            id: track.url, // SoundCloud uses full URL as unique identifier for streaming
+            title: track.name,
+            artist: track.artist,
+            albumArt: track.thumbnail || '',
             url: track.url,
-            source: 'youtube',
+            source: 'soundcloud',
             duration: track.duration ? track.duration / 1000 : 0
         }));
 
-        return NextResponse.json(results);
+        return NextResponse.json(tracks);
     } catch (error) {
         console.error('Search API error:', error);
         return NextResponse.json({ error: 'Failed to fetch search results' }, { status: 500 });
