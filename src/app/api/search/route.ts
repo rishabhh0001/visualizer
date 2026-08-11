@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import ytSearch from 'yt-search';
+import YouTube from 'youtube-sr';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,17 +13,16 @@ export async function GET(request: Request) {
     }
 
     try {
-        const r = await ytSearch(query);
-        const videos = r.videos.slice(0, 15);
+        const videos = await YouTube.search(query, { limit: 15, type: 'video' });
 
         const results = videos.map((track) => ({
-            id: track.videoId,
+            id: track.id,
             title: track.title,
-            artist: track.author.name,
-            albumArt: track.thumbnail,
+            artist: track.channel?.name || 'Unknown Artist',
+            albumArt: track.thumbnail?.url || '',
             url: track.url,
             source: 'youtube',
-            duration: track.seconds
+            duration: track.duration ? track.duration / 1000 : 0
         }));
 
         return NextResponse.json(results);
