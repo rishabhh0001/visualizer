@@ -2138,7 +2138,7 @@ function describeArc(cx, cy, r, startDeg, endDeg) {
                             // Reverb
                             ctrlRefs.reverbKnob = createKnob(document.getElementById('reverb-knob-container'), 'ROOM', 0.1, 4, 1.5, 's', 48, v => makeImpulseResponse(v));
                             ctrlRefs.reverbDry = createHSlider(document.getElementById('reverb-dry-wrap'), 'Wet', 0, 100, 0, '%', v => {
-                                if (reverbGain) reverbGain.gain.value = v / 100;
+                                if (reverbGain) reverbGain.gain.value = (v / 100) * 3;
                                 if (dryGain) dryGain.gain.value = 1 - (v / 100) * 0.6;
                             });
                             ctrlRefs.delayTime = createHSlider(document.getElementById('delay-time-wrap'), 'Delay', 0, 1000, 0, 'ms', v => delayNode && (delayNode.delayTime.value = v / 1000));
