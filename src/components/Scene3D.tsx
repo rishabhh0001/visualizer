@@ -24,19 +24,20 @@ function generateSpherePositions(count: number, radius: number) {
     return positions;
 }
 
-function ParticleField({ audioData }: { audioData: React.MutableRefObject<AudioEnergy> }) {
+function ParticleField({ audioData }: { audioData?: React.MutableRefObject<AudioEnergy> }) {
     const ref = useRef<THREE.Points>(null);
     const sphere = useMemo(() => generateSpherePositions(3000, 2.5), []);
 
     useFrame((state, delta) => {
         if (ref.current) {
-            // Speed up rotation based on bass energy
-            const speedMult = 1 + (audioData.current.bass * 15);
+            // Speed up rotation based on bass energy (default to 0 if no audioData)
+            const bass = audioData?.current?.bass || 0;
+            const speedMult = 1 + (bass * 15);
             ref.current.rotation.x -= (delta / 30) * speedMult;
             ref.current.rotation.y -= (delta / 40) * speedMult;
             
             // Pulse scale with bass
-            const scale = 1 + (audioData.current.bass * 0.3);
+            const scale = 1 + (bass * 0.3);
             ref.current.scale.set(scale, scale, scale);
         }
     });
@@ -57,23 +58,26 @@ function ParticleField({ audioData }: { audioData: React.MutableRefObject<AudioE
     );
 }
 
-function AbstractAudioCore({ audioData }: { audioData: React.MutableRefObject<AudioEnergy> }) {
+function AbstractAudioCore({ audioData }: { audioData?: React.MutableRefObject<AudioEnergy> }) {
     const outerRef = useRef<any>(null);
     const innerRef = useRef<any>(null);
 
     useFrame(() => {
+        const energy = audioData?.current?.energy || 0;
+        const bass = audioData?.current?.bass || 0;
+
         if (outerRef.current) {
             // Distort more with overall energy
-            outerRef.current.distort = 0.4 + (audioData.current.energy * 0.5);
-            outerRef.current.speed = 2 + (audioData.current.energy * 5);
+            outerRef.current.distort = 0.4 + (energy * 0.5);
+            outerRef.current.speed = 2 + (energy * 5);
         }
         if (innerRef.current) {
             // Inner core pulses intensely with bass
-            innerRef.current.distort = 0.6 + (audioData.current.bass * 1.2);
-            innerRef.current.speed = 3 + (audioData.current.bass * 10);
+            innerRef.current.distort = 0.6 + (bass * 1.2);
+            innerRef.current.speed = 3 + (bass * 10);
             
             // Pulse emissive intensity
-            innerRef.current.emissiveIntensity = 0.5 + (audioData.current.bass * 2.5);
+            innerRef.current.emissiveIntensity = 0.5 + (bass * 2.5);
         }
     });
 
@@ -113,7 +117,7 @@ function AbstractAudioCore({ audioData }: { audioData: React.MutableRefObject<Au
     );
 }
 
-export function Scene3D({ audioData }: { audioData: React.MutableRefObject<AudioEnergy> }) {
+export function Scene3D({ audioData }: { audioData?: React.MutableRefObject<AudioEnergy> }) {
     return (
         <div className="absolute inset-0 z-0 opacity-80 mix-blend-screen pointer-events-none">
             <Canvas camera={{ position: [0, 0, 3.5], fov: 45 }}>
