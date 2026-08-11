@@ -2295,8 +2295,8 @@ function describeArc(cx, cy, r, startDeg, endDeg) {
                                 let overallEnergy = 0;
                                 for (let i = 0; i < 10; i++) bassEnergy += freqData[i];
                                 bassEnergy /= 10;
-                                for (let i = 0; i < bufferLength; i++) overallEnergy += freqData[i];
-                                overallEnergy /= bufferLength;
+                                for (let i = 0; i < freqData.length; i++) overallEnergy += freqData[i];
+                                overallEnergy /= freqData.length;
                                 
                                 window.parent.postMessage({
                                     type: 'AUDIO_ENERGY',
@@ -2653,7 +2653,6 @@ window.addEventListener('message', (e) => {
                 uploadZone.style.display = 'none';
                 isStream = true;
                 audioBuffer = null;
-                startPlayback(0);
             });
             
             streamAudioEl.addEventListener('error', () => {
