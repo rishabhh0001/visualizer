@@ -2626,36 +2626,39 @@ window.addEventListener('message', (e) => {
         initAudioContext();
         if (audioCtx.state === 'suspended') audioCtx.resume();
         
-        if (streamAudioEl) {
-            streamAudioEl.pause();
-            streamAudioEl.src = '';
-        }
         if (sourceNode) {
             try { sourceNode.stop(); } catch (err) { }
         }
         
-        streamAudioEl = new Audio(url);
-        streamAudioEl.crossOrigin = 'anonymous';
-        streamAudioEl.addEventListener('canplay', () => {
-            uploadZone.style.display = 'none';
-            if (!mediaElementSrc) {
-                mediaElementSrc = audioCtx.createMediaElementSource(streamAudioEl);
-            }
-            mediaElementSrc.disconnect();
-            mediaElementSrc.connect(subFilter); // CONNECT to EQ chain
+        if (!streamAudioEl) {
+            streamAudioEl = new Audio();
+            streamAudioEl.crossOrigin = 'anonymous';
+            mediaElementSrc = audioCtx.createMediaElementSource(streamAudioEl);
+            mediaElementSrc.connect(subFilter);
             
-            isStream = true;
-            audioBuffer = null;
-            headerTitle.textContent = title || 'Audio Stream';
-            headerArtist.textContent = artist || 'Remote Stream';
-            seekTrackName.textContent = title || 'Remote Stream';
+            streamAudioEl.addEventListener('canplay', () => {
+                uploadZone.style.display = 'none';
+                isStream = true;
+                audioBuffer = null;
+                startPlayback(0);
+            });
             
-            startPlayback(0);
-        });
+            streamAudioEl.addEventListener('error', () => {
+                console.error('Stream load error');
+            });
+        }
         
-        streamAudioEl.addEventListener('error', () => {
-            console.error('Stream load error');
-        });
+        streamAudioEl.pause();
+        streamAudioEl.src = url;
+        streamAudioEl.load();
+        
+        headerTitle.textContent = title || 'Audio Stream';
+        headerArtist.textContent = artist || 'Remote Stream';
+        seekTrackName.textContent = title || 'Remote Stream';
+        
+        streamAudioEl.play();
+        isPlaying = true;
+        updatePlayUI();
     }
 });
 </script>
