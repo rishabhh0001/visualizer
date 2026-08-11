@@ -2617,7 +2617,49 @@ function drawScope(W, H) {
 buildControls();
 renderLoop();
 
+
+window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'PLAY_URL') {
+        const { url, title, artist } = e.data;
+        if (!url) return;
+        
+        initAudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        if (streamAudioEl) {
+            streamAudioEl.pause();
+            streamAudioEl.src = '';
+        }
+        if (sourceNode) {
+            try { sourceNode.stop(); } catch (err) { }
+        }
+        
+        streamAudioEl = new Audio(url);
+        streamAudioEl.crossOrigin = 'anonymous';
+        streamAudioEl.addEventListener('canplay', () => {
+            uploadZone.style.display = 'none';
+            if (!mediaElementSrc) {
+                mediaElementSrc = audioCtx.createMediaElementSource(streamAudioEl);
+            }
+            mediaElementSrc.disconnect();
+            mediaElementSrc.connect(subFilter); // CONNECT to EQ chain
+            
+            isStream = true;
+            audioBuffer = null;
+            headerTitle.textContent = title || 'Audio Stream';
+            headerArtist.textContent = artist || 'Remote Stream';
+            seekTrackName.textContent = title || 'Remote Stream';
+            
+            startPlayback(0);
+        });
+        
+        streamAudioEl.addEventListener('error', () => {
+            console.error('Stream load error');
+        });
+    }
+});
 </script>
+
 </body>
 
 </html>`;
